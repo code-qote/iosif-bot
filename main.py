@@ -11,7 +11,6 @@ youtube_dl.utils.bug_reports_message = lambda: ''
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
-
 def get_url(keyword):
     request = f'{YOUTUBE_API_URL}q={keyword}&regionCode=US&key={API_TOKEN}'
     json_response = get(request).json()
@@ -54,6 +53,8 @@ class Music(commands.Cog):
 
     @commands.command()
     async def play(self, ctx, *, keyword):
+        if ctx.voice_client.is_playing():
+            ctx.voice_client.stop()
         async with ctx.typing():
             player = await YTDLSource.from_url(get_url(keyword), loop=self.bot.loop)
             ctx.voice_client.play(player, after=lambda e: print('Ошибка: %s' % e) if e else None)
@@ -76,27 +77,21 @@ class Music(commands.Cog):
             ctx.voice_client.resume()
     
     @commands.command()
-    async def volume(self, ctx, *, value: int):
-        print(value)
-        if 0 > value > 100:
-            return await ctx.send('Громкость не может быть меньше 0 и больше 100')
-        discord.PCMVolumeTransformer.volume = value / 100
-
-
-    @commands.command()
     async def leave(self, ctx):
+        if ctx.voice_client.is_playing():
+            ctx.voice_client.stop()
         await ctx.voice_client.disconnect()
 
 
 if __name__ == '__main__':
     bot = commands.Bot(command_prefix='!')
     ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
+    bot.add_cog(Music(bot))
+    bot.run(TOKEN)
 
     @bot.event
     async def on_ready():
         print('Logged in as {0} ({0.id})'.format(bot.user))
         print('------')
         discord.opus.load_opus('libopus.so')
-
-    bot.add_cog(Music(bot))
-    bot.run(TOKEN)
+    
