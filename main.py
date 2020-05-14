@@ -13,7 +13,7 @@ ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 
 def get_url(keyword):
-    request = f'{YOUTUBE_API_URL}q={keyword}&key={API_TOKEN}'
+    request = f'{YOUTUBE_API_URL}q={keyword}&regionCode=US&key={API_TOKEN}'
     json_response = get(request).json()
     return VIDEO_URL + json_response['items'][0]['id']['videoId']
 
@@ -53,9 +53,9 @@ class Music(commands.Cog):
             await channel.connect()
 
     @commands.command()
-    async def play(self, ctx, *keyword):
+    async def play(self, ctx, *, keyword):
         async with ctx.typing():
-            player = await YTDLSource.from_url(get_url('+'.join(keyword)), loop=self.bot.loop)
+            player = await YTDLSource.from_url(get_url(keyword), loop=self.bot.loop)
             ctx.voice_client.play(player, after=lambda e: print('Ошибка: %s' % e) if e else None)
 
         await ctx.send('Сейчас играет: {}'.format(player.title))
