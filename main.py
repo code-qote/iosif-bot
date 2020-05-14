@@ -7,7 +7,7 @@ from discord import FFmpegPCMAudio
 TOKEN = 'Njc4NjM2NDg2NDQ2NTQ2OTc0.XklvYw.W1Fume1JRGVDG6AV3DXpKQuCgvQ'
 
 BOT_CHANNEL = 'forbot'
-
+#
 
 youtube_dl.utils.bug_reports_message = lambda: ''
 
