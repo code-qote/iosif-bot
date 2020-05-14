@@ -3,34 +3,19 @@ from discord.ext import commands
 import youtube_dl
 import asyncio
 from discord import FFmpegPCMAudio
+from requests import get
+from consts import TOKEN, BOT_CHANNEL, ytdl_format_options, FFMPEG_OPTIONS, VIDEO_URL, YOUTUBE_API_URL, API_TOKEN
 
-TOKEN = 'Njc4NjM2NDg2NDQ2NTQ2OTc0.XklvYw.W1Fume1JRGVDG6AV3DXpKQuCgvQ'
-
-BOT_CHANNEL = 'forbot'
-#
 
 youtube_dl.utils.bug_reports_message = lambda: ''
 
-
-ytdl_format_options = {
-    'format': 'bestaudio/best',
-    'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
-    'restrictfilenames': True,
-    'noplaylist': True,
-    'nocheckcertificate': True,
-    'ignoreerrors': False,
-    'logtostderr': False,
-    'quiet': True,
-    'no_warnings': True,
-    'default_search': 'auto',
-    'source_address': '0.0.0.0'
-}
-
-FFMPEG_OPTIONS = {
-    'options': '-vn'
-}
-
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
+
+
+def get_url(keyword):
+    request = f'{YOUTUBE_API_URL}q={keyword}&key={API_TOKEN}'
+    json_response = get(request).json()
+    return VIDEO_URL + json_response['items'][0]['id']['videoId']
 
 
 class YTDLSource(discord.PCMVolumeTransformer):
@@ -68,9 +53,9 @@ class Music(commands.Cog):
             await channel.connect()
 
     @commands.command()
-    async def play(self, ctx, *, url):
+    async def play(self, ctx, *keyword):
         async with ctx.typing():
-            player = await YTDLSource.from_url(url, loop=self.bot.loop)
+            player = await YTDLSource.from_url(get_url('+'.join(keyword)), loop=self.bot.loop)
             ctx.voice_client.play(player, after=lambda e: print('Ошибка: %s' % e) if e else None)
 
         await ctx.send('Сейчас играет: {}'.format(player.title))
