@@ -53,7 +53,7 @@ class Music(commands.Cog):
 
     @commands.command()
     async def play(self, ctx, *, keyword):
-        if ctx.voice_client.is_playing():
+        if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
             ctx.voice_client.stop()
         async with ctx.typing():
             player = await YTDLSource.from_url(get_url(keyword), loop=self.bot.loop)
