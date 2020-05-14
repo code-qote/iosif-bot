@@ -111,6 +111,7 @@ if __name__ == '__main__':
     async def on_ready():
         print('Logged in as {0} ({0.id})'.format(bot.user))
         print('------')
+        discord.opus.load_opus('libopus.so')
 
     bot.add_cog(Music(bot))
     bot.run(TOKEN)
