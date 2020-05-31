@@ -4,17 +4,12 @@ import youtube_dl
 import asyncio
 from discord import FFmpegPCMAudio
 from requests import get
-from consts import TOKEN, BOT_CHANNEL, ytdl_format_options, FFMPEG_OPTIONS, VIDEO_URL, YOUTUBE_API_URL, API_TOKEN
-
+from consts import TOKEN, BOT_CHANNEL, ytdl_format_options, FFMPEG_OPTIONS, VIDEO_URL, YOUTUBE_API_URL, API_TOKEN, before_options
+import os
 
 youtube_dl.utils.bug_reports_message = lambda: ''
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
-
-def get_url(keyword):
-    request = f'{YOUTUBE_API_URL}q={keyword}&regionCode=US&key={API_TOKEN}'
-    json_response = get(request).json()
-    return VIDEO_URL + json_response['items'][0]['id']['videoId']
 
 
 class YTDLSource(discord.PCMVolumeTransformer):
@@ -35,7 +30,12 @@ class YTDLSource(discord.PCMVolumeTransformer):
             data = data['entries'][0]
 
         filename = data['url'] if stream else ytdl.prepare_filename(data)
-        return cls(discord.FFmpegPCMAudio(filename, **FFMPEG_OPTIONS), data=data)
+        try:
+            if os.path.exists(filename):
+                os.remove(filename)
+        except Exception as E:
+            print(E)
+        return cls(discord.FFmpegPCMAudio(filename, before_options=before_options, **FFMPEG_OPTIONS), data=data)
     
 
 class Music(commands.Cog):
@@ -56,9 +56,8 @@ class Music(commands.Cog):
         if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
             ctx.voice_client.stop()
         async with ctx.typing():
-            player = await YTDLSource.from_url(get_url(keyword), loop=self.bot.loop)
+            player = await YTDLSource.from_url(keyword, loop=self.bot.loop)
             ctx.voice_client.play(player, after=lambda e: print('Ошибка: %s' % e) if e else None)
-
         await ctx.send('Сейчас играет: {}'.format(player.title))
     
     @commands.command()

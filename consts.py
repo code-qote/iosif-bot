@@ -21,3 +21,5 @@ ytdl_format_options = {
 FFMPEG_OPTIONS = {
     'options': '-vn'
 }
+
+before_options = "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
