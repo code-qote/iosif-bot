@@ -4,7 +4,7 @@ import youtube_dl
 import asyncio
 from discord import FFmpegPCMAudio
 from requests import get
-from consts import TOKEN, BOT_CHANNEL, ytdl_format_options, FFMPEG_OPTIONS, VIDEO_URL, YOUTUBE_API_URL, API_TOKEN, before_options
+from consts import TOKEN, BOT_CHANNEL, ytdl_format_options, FFMPEG_OPTIONS, VIDEO_URL, YOUTUBE_API_URL, API_TOKEN
 import os
 
 youtube_dl.utils.bug_reports_message = lambda: ''
@@ -35,7 +35,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
                 os.remove(filename)
         except Exception as E:
             print(E)
-        return cls(discord.FFmpegPCMAudio(filename, before_options=before_options, **FFMPEG_OPTIONS), data=data)
+        return cls(discord.FFmpegPCMAudio(filename, before_options="-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5", **FFMPEG_OPTIONS), data=data)
     
 
 class Music(commands.Cog):
