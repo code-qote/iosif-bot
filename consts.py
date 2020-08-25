@@ -1,4 +1,4 @@
-TOKEN = 'Njc4NjM2NDg2NDQ2NTQ2OTc0.XklvYw.W1Fume1JRGVDG6AV3DXpKQuCgvQ'
+TOKEN = 'Njc4NjM2NDg2NDQ2NTQ2OTc0.Xklreg.NpEp6lij-qTsNIFsr1d2VQj__-Y'
 BOT_CHANNEL = 'forbot'
 VIDEO_URL = 'https://www.youtube.com/watch?v='
 YOUTUBE_API_URL = 'https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&'
