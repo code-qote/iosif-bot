@@ -32,7 +32,7 @@ async def check_birthdays():
                 last_congratulation = congratulation
                 break
         print('i work')
-        await asyncio.sleep(3600)
+        await asyncio.sleep(time_to_sleep)
 
 
 class YTDLSource(discord.PCMVolumeTransformer):
