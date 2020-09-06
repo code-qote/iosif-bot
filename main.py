@@ -19,7 +19,7 @@ last_day = None
 
 async def check_birthdays():
     await bot.wait_until_ready()
-    global last_congratulation, k
+    global last_congratulation, k, last_day
     while not bot.is_closed():
         day = date.today()
         if day != last_day:
