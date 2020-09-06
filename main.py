@@ -28,7 +28,7 @@ async def check_birthdays():
                 while congratulation == last_congratulation:
                     congratulation = choice(congratulations)
                 channel = bot.get_channel(birthday_channel_id)
-                await channel.send(congratulation.replace('date', birthday[3]).replace('name', birthday[2]))
+                # await channel.send(congratulation.replace('date', birthday[3]).replace('name', birthday[2]))
                 last_congratulation = congratulation
                 break
         print('i work')
