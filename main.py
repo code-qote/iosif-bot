@@ -15,22 +15,25 @@ youtube_dl.utils.bug_reports_message = lambda: ''
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 last_congratulation = None
+last_day = None
 
 async def check_birthdays():
     await bot.wait_until_ready()
     global last_congratulation, k
     while not bot.is_closed():
         day = date.today()
-        for birthday in birthdays:
-            if birthday[0] == day.day and birthday[1] == day.month:
-                from random import choice
-                congratulation = choice(congratulations)
-                while congratulation == last_congratulation:
+        if day != last_day:
+            for birthday in birthdays:
+                if birthday[0] == day.day and birthday[1] == day.month:
+                    from random import choice
                     congratulation = choice(congratulations)
-                channel = bot.get_channel(birthday_channel_id)
-                await channel.send(congratulation.replace('date', birthday[3]).replace('name', birthday[2]))
-                last_congratulation = congratulation
-                break
+                    while congratulation == last_congratulation:
+                        congratulation = choice(congratulations)
+                    channel = bot.get_channel(birthday_channel_id)
+                    await channel.send(congratulation.replace('date', birthday[3]).replace('name', birthday[2]))
+                    last_congratulation = congratulation
+                    last_day = day
+                    break
         print('I work')
         await asyncio.sleep(time_to_sleep)
 
