@@ -4,12 +4,35 @@ import youtube_dl
 import asyncio
 from discord import FFmpegPCMAudio
 from requests import get
-from consts import TOKEN, BOT_CHANNEL, ytdl_format_options, FFMPEG_OPTIONS, VIDEO_URL, YOUTUBE_API_URL, API_TOKEN
+from consts import *
 import os
+import time
+from datetime import date
+from threading import Thread
 
 youtube_dl.utils.bug_reports_message = lambda: ''
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
+
+last_congratulation = None
+
+async def check_birthdays():
+    await bot.wait_until_ready()
+    global last_congratulation
+    while not bot.is_closed():
+        day = date.today()
+        for birthday in birthdays:
+            if birthday[0] == day.day and birthday[1] == day.month:
+                from random import choice
+                congratulation = choice(congratulations)
+                while congratulation == last_congratulation:
+                    congratulation = choice(congratulations)
+                channel = bot.get_channel(birthday_channel_id)
+                await channel.send(congratulation.replace('date', birthday[3]).replace('name', birthday[2]))
+                last_congratulation = congratulation
+                break
+        print('i work')
+        await asyncio.sleep(3600)
 
 
 class YTDLSource(discord.PCMVolumeTransformer):
@@ -44,11 +67,13 @@ class Music(commands.Cog):
 
     @commands.command()
     async def join(self, ctx, ctx_channel: discord.VoiceChannel = None):
+        global bot
         if ctx.channel.name == BOT_CHANNEL:
             try:
                 channel = ctx.author.voice.channel
             except:
                 channel = ctx_channel
+            print(list(bot.get_all_channels()))
             await channel.connect()
 
     @commands.command()
@@ -86,6 +111,7 @@ if __name__ == '__main__':
     bot = commands.Bot(command_prefix='!')
     ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
     bot.add_cog(Music(bot))
+    bot.loop.create_task(check_birthdays())
     bot.run(TOKEN)
 
     @bot.event
