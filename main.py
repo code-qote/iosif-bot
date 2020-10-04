@@ -34,7 +34,6 @@ async def check_birthdays():
                     last_congratulation = congratulation
                     last_day = day
                     break
-        print('I work')
         await asyncio.sleep(time_to_sleep)
 
 
