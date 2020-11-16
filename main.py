@@ -80,33 +80,38 @@ class Music(commands.Cog):
 
     @commands.command()
     async def play(self, ctx, *, keyword):
-        if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
-            ctx.voice_client.stop()
-        async with ctx.typing():
-            player = await YTDLSource.from_url(keyword, loop=self.bot.loop)
-            ctx.voice_client.play(player, after=lambda e: print('Ошибка: %s' % e) if e else None)
-        await ctx.send('Сейчас играет: {}'.format(player.title))
+        if ctx.channel.name == BOT_CHANNEL:
+            if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
+                ctx.voice_client.stop()
+            async with ctx.typing():
+                player = await YTDLSource.from_url(keyword, loop=self.bot.loop)
+                ctx.voice_client.play(player, after=lambda e: print('Ошибка: %s' % e) if e else None)
+            await ctx.send('Сейчас играет: {}'.format(player.title))
     
     @commands.command()
     async def stop(self, ctx):
-        if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
-            ctx.voice_client.stop()
+        if ctx.channel.name == BOT_CHANNEL:
+            if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
+                ctx.voice_client.stop()
 
     @commands.command()
     async def pause(self, ctx):
-        if ctx.voice_client.is_playing():
-            ctx.voice_client.pause()
+        if ctx.channel.name == BOT_CHANNEL:
+            if ctx.voice_client.is_playing():
+                ctx.voice_client.pause()
     
     @commands.command()
     async def resume(self, ctx):
-         if ctx.voice_client.is_paused():
-            ctx.voice_client.resume()
+        if ctx.channel.name == BOT_CHANNEL:
+            if ctx.voice_client.is_paused():
+                ctx.voice_client.resume()
     
     @commands.command()
     async def leave(self, ctx):
-        if ctx.voice_client.is_playing():
-            ctx.voice_client.stop()
-        await ctx.voice_client.disconnect()
+        if ctx.channel.name == BOT_CHANNEL:
+            if ctx.voice_client.is_playing():
+                ctx.voice_client.stop()
+            await ctx.voice_client.disconnect()
 
 
 if __name__ == '__main__':
