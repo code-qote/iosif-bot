@@ -113,7 +113,7 @@ if __name__ == '__main__':
     bot = commands.Bot(command_prefix='!')
     ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
     bot.add_cog(Music(bot))
-    bot.loop.create_task(check_birthdays())
+    #bot.loop.create_task(check_birthdays())
     bot.run(TOKEN)
 
     @bot.event
