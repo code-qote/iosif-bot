@@ -1,8 +1,5 @@
-TOKEN = 'Njc4NjM2NDg2NDQ2NTQ2OTc0.Xklreg.NpEp6lij-qTsNIFsr1d2VQj__-Y'
+TOKEN = 'Nzc4NDYyODM0Mzg0MTc1MTA0.X7SWAg.mB4hoCak5IHWtZT5llYAApYqhRc'
 BOT_CHANNEL = 'forbot'
-VIDEO_URL = 'https://www.youtube.com/watch?v='
-YOUTUBE_API_URL = 'https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&'
-API_TOKEN = 'AIzaSyCtCZl9l1Vu1ookv-79MQ5-oqfertcWMBc'
 
 ytdl_format_options = {
     'format': 'bestaudio/best',
