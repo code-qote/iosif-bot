@@ -76,7 +76,7 @@ class Music(commands.Cog):
             except:
                 channel = ctx_channel
             print(list(bot.get_all_channels()))
-            print(bot.guilds())
+            print(bot.guilds)
             await channel.connect()
 
     @commands.command()
