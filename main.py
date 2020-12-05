@@ -7,34 +7,16 @@ from requests import get
 from consts import *
 import os
 import time
-from datetime import date
-from threading import Thread
+from data import db_session
+from api import *
 
 youtube_dl.utils.bug_reports_message = lambda: ''
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
-last_congratulation = None
-last_day = None
 
-async def check_birthdays():
-    await bot.wait_until_ready()
-    global last_congratulation, last_day
-    while not bot.is_closed():
-        day = date.today()
-        if day != last_day:
-            for birthday in birthdays:
-                if birthday[0] == day.day and birthday[1] == day.month:
-                    from random import choice
-                    congratulation = choice(congratulations)
-                    while congratulation == last_congratulation:
-                        congratulation = choice(congratulations)
-                    channel = bot.get_channel(birthday_channel_id)
-                    await channel.send(congratulation.replace('date', birthday[3]).replace('name', birthday[2]))
-                    last_congratulation = congratulation
-                    last_day = day
-                    break
-        await asyncio.sleep(time_to_sleep)
+queues_current_position = dict()
+playlists_current_position = dict()
 
 
 class YTDLSource(discord.PCMVolumeTransformer):
@@ -49,8 +31,10 @@ class YTDLSource(discord.PCMVolumeTransformer):
     @classmethod
     async def from_url(cls, url, *, loop=None, stream=True):
         loop = loop or asyncio.get_event_loop()
-        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
-
+        try:
+            data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
+        except Exception():
+            return False
         if 'entries' in data:
             data = data['entries'][0]
 
@@ -66,60 +50,144 @@ class YTDLSource(discord.PCMVolumeTransformer):
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+    
+    @commands.command()
+    async def qnext(self, ctx):
+        await self.play_next(ctx)
+    
+    @commands.command()
+    async def qprev(self, ctx):
+        await self.play_previous(ctx)
+    
+    async def play_previous(self, ctx):
+        global bot
+        server_id = ctx.message.guild.id
+        queues_current_position[server_id] -= 1
+        if queues_current_position[server_id] == 0:
+            await ctx.send('This is the first song')
+        else:
+            request = get_song_from_queue(server_id, queues_current_position[server_id])
+            if request:
+                await self.qplay(ctx)
+            else:
+                await ctx.send('Error')
+
+    async def play_next(self, ctx):
+        global bot
+        server_id = ctx.message.guild.id
+        queues_current_position[server_id] += 1
+        request = get_song_from_queue(server_id, queues_current_position[server_id])
+        if request:
+            await self.qplay(ctx)
+        elif not request and queues_current_position[server_id] == 1:
+            await ctx.send('Queue is clear')
+        else:
+            queues_current_position[server_id] = 0
+            await self.qplay(ctx)
 
     @commands.command()
     async def join(self, ctx, ctx_channel: discord.VoiceChannel = None):
         global bot
-        if ctx.channel.name == BOT_CHANNEL:
-            try:
-                channel = ctx.author.voice.channel
-            except:
-                channel = ctx_channel
-            print(list(bot.get_all_channels()))
-            await channel.connect()
+        try:
+            channel = ctx.author.voice.channel
+        except:
+            channel = ctx_channel
+        server_id = ctx.message.guild.id
+        queues_current_position[server_id] = queues_current_position.get(server_id, 1)
+        add_server(server_id)
+        await channel.connect()
 
     @commands.command()
     async def play(self, ctx, *, keyword):
-        if ctx.channel.name == BOT_CHANNEL:
-            if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
-                ctx.voice_client.stop()
-            async with ctx.typing():
-                player = await YTDLSource.from_url(keyword, loop=self.bot.loop)
-                ctx.voice_client.play(player, after=lambda e: print('Ошибка: %s' % e) if e else None)
-            await ctx.send('Сейчас играет: {}'.format(player.title))
+        if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
+            ctx.voice_client.stop()
+        async with ctx.typing():
+            player = await YTDLSource.from_url(keyword, loop=self.bot.loop)
+            if player:
+                ctx.voice_client.play(player)
+        await ctx.send('Now playing: {}'.format(player.title))
+    
+    @commands.command()
+    async def qplay(self, ctx):
+        if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
+            ctx.voice_client.stop()
+        async with ctx.typing():
+            server_id = ctx.message.guild.id
+            request = get_song_from_queue(server_id, queues_current_position[server_id])
+            if not request:
+                await ctx.send('Queue is clear')
+            else:
+                player = await YTDLSource.from_url(request, loop=self.bot.loop)
+                if player:
+                    ctx.voice_client.play(player, after=lambda e: self.play_next(ctx))
+                await ctx.send('Now playing: {}'.format(player.title))
+    
+    @commands.command()
+    async def qadd(self, ctx, *, keyword):
+        server_id = ctx.message.guild.id
+        add_song(keyword)
+        add_song_to_queue(keyword, server_id)
+        await self.qlist(ctx)
+    
+    @commands.command()
+    async def qlist(self, ctx):
+        server_id = ctx.message.guild.id
+        songs = songs_list_from_queue(server_id)
+        async with ctx.typing():
+            text = ''
+            if songs:
+                for song in songs:
+                    text += f'{song["position"]}. {song["request"]}\n'
+            else:
+                text = 'Queue is clear'
+        await ctx.send(text)
+    
+    @commands.command()
+    async def qclear(self, ctx):
+        server_id = ctx.message.guild.id
+        clear_queue(server_id)
+        await ctx.send('Queue is cleared!')
+    
+    @commands.command()
+    async def play_queue(self, ctx):
+        server_id = ctx.message.guild.id
+        queue = get_queue(server_id)
+        request = get_song_from_queue(server_id, queues_current_position[server_id])
+        if request['success']:
+            self.play(ctx, keyword=request)
+        else:
+            await ctx.send('Not found')
     
     @commands.command()
     async def stop(self, ctx):
-        if ctx.channel.name == BOT_CHANNEL:
-            if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
-                ctx.voice_client.stop()
+        if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
+            ctx.voice_client.stop()
 
     @commands.command()
     async def pause(self, ctx):
-        if ctx.channel.name == BOT_CHANNEL:
-            if ctx.voice_client.is_playing():
-                ctx.voice_client.pause()
+        if ctx.voice_client.is_playing():
+            ctx.voice_client.pause()
     
     @commands.command()
     async def resume(self, ctx):
-        if ctx.channel.name == BOT_CHANNEL:
-            if ctx.voice_client.is_paused():
-                ctx.voice_client.resume()
+        if not ctx.voice_client.is_playing():
+            ctx.voice_client.resume()
     
     @commands.command()
     async def leave(self, ctx):
-        if ctx.channel.name == BOT_CHANNEL:
-            if ctx.voice_client.is_playing():
-                ctx.voice_client.stop()
-            await ctx.voice_client.disconnect()
+        if ctx.voice_client.is_playing():
+            ctx.voice_client.stop()
+        await ctx.voice_client.disconnect()
 
 
 if __name__ == '__main__':
+    db_session.global_init('data/db.db')
     bot = commands.Bot(command_prefix='!')
+
     ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
+
     bot.add_cog(Music(bot))
-    #bot.loop.create_task(check_birthdays())
-    bot.run(TOKEN)
+    bot.run(TOKEN_TEST)
 
     @bot.event
     async def on_ready():
