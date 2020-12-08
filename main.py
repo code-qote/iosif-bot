@@ -9,9 +9,9 @@ from data import db_session
 from commands import music, playlist_music, queue_music
 
 
+
 if __name__ == '__main__':
-    db_session.global_init()
-    
+    db_session.global_init()   
     bot = commands.Bot(command_prefix='!')
 
     bot.add_cog(music.Music(bot))
