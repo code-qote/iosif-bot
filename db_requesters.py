@@ -1,7 +1,5 @@
 from data.__all_models import *
 from data.db_session import create_session
-from flask import Flask, jsonify
-from flask_restful import Api, Resource, abort, reqparse
 from sqlalchemy import func
 
 
