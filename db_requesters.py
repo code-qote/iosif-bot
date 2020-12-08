@@ -48,11 +48,13 @@ class PlaylistRequester:
         playlists = session.query(Playlist).filter_by(user_id=user_id).all()
         if not playlists:
             return {'exist': False}
-        return {'exist': True, 'playlists': [playlist.to_dict() for playlist in playlists]}
+        return {'exist': True, 'playlists': [playlist.name for playlist in playlists]}
 
     def add(self, user_id, name):
         session = create_session()
         if not self.get_by_user_id_and_name(user_id, name)['exist']:
+            requester = UserRequester()
+            user_id = requester.get_by_discord_id(user_id)['id']
             playlist = Playlist(name=name, user_id=user_id)
             session.add(playlist)
             session.commit()
@@ -86,14 +88,13 @@ class SongRequester:
         song = association.song
         return {'success': True, 'request' : song.request}
     
-    def get_from_playlist(self, user_id, name, position):
+    def get_from_playlist(self, playlist_id, position):
         session = create_session()
-        playlist = session.query(Playlist).filter_by(user_id=user_id, name=name).first()
-        association = session.query(Association_playlists_songs).filter_by(playlist_id=playlist.id, position=position)
+        association = session.query(Association_playlists_songs).filter_by(playlist_id=playlist_id, position=position).first()
         if not association:
             return {'success': False}
         song = association.song
-        return {'song': song.to_dict(only=('request'))}
+        return {'success': True, 'request' : song.request}
 
     def get_by_request(self, request):
         session = create_session()
@@ -167,13 +168,59 @@ class QueueSongRequester:
             session.delete(item)
         session.commit()
 
+class PlaylistSongRequester:
+    def connect_playlist_queue(self, request, playlist_id):
+        session = create_session()
+        requester = SongRequester()
+        song = requester.get_by_request(request)
+        items = session.query(Association_playlists_songs).filter_by(playlist_id=playlist_id).all()
+        if items:
+            position = max(items, key=lambda x: x.position).position + 1
+        else:
+            position = 1
+        if song['exist']:
+            association = Association_playlists_songs(
+                playlist_id=playlist_id,
+                song_id=song['id'],
+                position=position,
+                playlist=session.query(Playlist).get(playlist_id),
+                song=session.query(Song).get(song['id'])
+            )
+            session.add(association)
+            session.commit()
+            return {'success': True}
+        return {'success': False}
+    
+    def get_songs_list(self, playlist_id):
+        session = create_session()
+        return [{'request': item.song.request, 'position': item.position} for item in session.query(Association_playlists_songs).filter_by(playlist_id=playlist_id).all()]
+    
+    def remove_songs_by_playlist_id(self, playlist_id):
+        session = create_session()
+        items = session.query(Association_playlists_songs).filter_by(playlist_id=playlist_id).all()
+        for item in items:
+            session.delete(item)
+        session.commit()
+    
+    def remove_song_by_position(self, playlist_id, position):
+        session = create_session()
+        item = session.query(Association_playlists_songs).filter_by(playlist_id=playlist_id, position=position).first()
+        if item:
+            items = list(filter(lambda x: x.position > position, session.query(Association_playlists_songs).filter_by(playlist_id=playlist_id).all()))
+            session.delete(item)
+            for item in items:
+                item.position += 1
+            session.commit()
+            return {'success': True}
+        return {'success': False}
+
 class UserRequester:
     def get_by_discord_id(self, discord_id):
         session = create_session()
         user = session.query(User).filter_by(discord_id=discord_id).first()
         if not user:
             return {'exist': False}
-        return {'exist': False, 'id': user.id}
+        return {'exist': True, 'id': user.id}
     
     def add(self, discord_id):
         session = create_session()
