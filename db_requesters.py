@@ -42,6 +42,13 @@ class PlaylistRequester:
         if not playlist:
             return {'exist': False}
         return {'exist': True, 'id': playlist.id}
+    
+    def get_by_user_id(self, user_id):
+        session = create_session()
+        playlists = session.query(Playlist).filter_by(user_id=user_id).all()
+        if not playlists:
+            return {'exist': False}
+        return {'exist': True, 'playlists': [playlist.to_dict() for playlist in playlists]}
 
     def add(self, user_id, name):
         session = create_session()
@@ -159,3 +166,21 @@ class QueueSongRequester:
         for item in items:
             session.delete(item)
         session.commit()
+
+class UserRequester:
+    def get_by_discord_id(self, discord_id):
+        session = create_session()
+        user = session.query(User).filter_by(discord_id=discord_id).first()
+        if not user:
+            return {'exist': False}
+        return {'exist': False, 'id': user.id}
+    
+    def add(self, discord_id):
+        session = create_session()
+        if not self.get_by_discord_id(discord_id)['exist']:
+            user = User(discord_id=discord_id)
+            session.add(user)
+            session.commit()
+            return {'success': True}
+        return {'success': False}
+    

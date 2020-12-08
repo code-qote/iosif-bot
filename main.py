@@ -15,9 +15,7 @@ youtube_dl.utils.bug_reports_message = lambda: ''
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 
-queues_current_position = dict()
-playlists_current_position = dict()
-
+server_current_position = dict()
 
 class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=0.5):
@@ -62,11 +60,11 @@ class Music(commands.Cog):
     async def play_previous(self, ctx):
         global bot
         server_id = ctx.message.guild.id
-        queues_current_position[server_id] -= 1
-        if queues_current_position[server_id] == 0:
+        server_current_position[server_id]['position'] -= 1
+        if server_current_position[server_id]['position'] == 0:
             await ctx.send('This is the first song')
         else:
-            request = get_song_from_queue(server_id, queues_current_position[server_id])
+            request = get_song_from_queue(server_id, server_current_position[server_id]['position'])
             if request:
                 await self.qplay(ctx)
             else:
@@ -75,15 +73,15 @@ class Music(commands.Cog):
     async def play_next(self, ctx):
         global bot
         server_id = ctx.message.guild.id
-        queues_current_position[server_id] += 1
-        request = get_song_from_queue(server_id, queues_current_position[server_id])
+        server_current_position[server_id]['position'] += 1
+        request = get_song_from_queue(server_id, server_current_position[server_id]['position'])
         if request:
             await self.qplay(ctx)
-        elif not request and queues_current_position[server_id] == 1:
+        elif not request and server_current_position[server_id]['position'] == 1:
             await ctx.send('Queue is clear')
         else:
-            queues_current_position[server_id] = 0
-            await self.qplay(ctx)
+            server_current_position[server_id]['position'] = 0
+            await self.play_next(ctx)
 
     @commands.command()
     async def join(self, ctx, ctx_channel: discord.VoiceChannel = None):
@@ -93,7 +91,7 @@ class Music(commands.Cog):
         except:
             channel = ctx_channel
         server_id = ctx.message.guild.id
-        queues_current_position[server_id] = queues_current_position.get(server_id, 1)
+        server_current_position[server_id] = {'position': server_current_position.get(server_id, 1), 'is_queue': True}
         add_server(server_id)
         await channel.connect()
 
@@ -102,10 +100,11 @@ class Music(commands.Cog):
         if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
             ctx.voice_client.stop()
         async with ctx.typing():
-            player = await YTDLSource.from_url(keyword, loop=self.bot.loop)
-            if player:
-                ctx.voice_client.play(player)
-        await ctx.send('Now playing: {}'.format(player.title))
+            pass
+            # player = await YTDLSource.from_url(keyword, loop=self.bot.loop)
+            # if player:
+                # ctx.voice_client.play(player)
+        await ctx.send('Now playing: {}'.format('a'))
     
     @commands.command()
     async def qplay(self, ctx):
@@ -113,14 +112,16 @@ class Music(commands.Cog):
             ctx.voice_client.stop()
         async with ctx.typing():
             server_id = ctx.message.guild.id
-            request = get_song_from_queue(server_id, queues_current_position[server_id])
+            request = get_song_from_queue(server_id, server_current_position[server_id]['position'])
             if not request:
                 await ctx.send('Queue is clear')
             else:
-                player = await YTDLSource.from_url(request, loop=self.bot.loop)
-                if player:
-                    ctx.voice_client.play(player, after=lambda e: self.play_next(ctx))
-                await ctx.send('Now playing: {}'.format(player.title))
+                pass
+                # player = await YTDLSource.from_url(request, loop=self.bot.loop)
+                # if player:
+                #     ctx.voice_client.play(player, after=lambda e: self.play_next(ctx))
+            # await ctx.send('Now playing: {}'.format(player.title))
+            await ctx.send('Now playing: {}'.format(request))
     
     @commands.command()
     async def qadd(self, ctx, *, keyword):
@@ -152,12 +153,27 @@ class Music(commands.Cog):
     async def play_queue(self, ctx):
         server_id = ctx.message.guild.id
         queue = get_queue(server_id)
-        request = get_song_from_queue(server_id, queues_current_position[server_id])
+        request = get_song_from_queue(server_id, server_current_position[server_id]['position'])
         if request['success']:
             self.play(ctx, keyword=request)
         else:
             await ctx.send('Not found')
     
+    @commands.command()
+    async def add_playlist(self, ctx, *, keyword):
+        user_id = ctx.message.user.id
+        add_user(user_id)
+        if add_playlist(user_id, keyword)['success']:
+            await ctx.send(f'Playlist {keyword} created!')
+        else:
+            await ctx.send('Error!')
+    
+    @commands.command()
+    async def playlists_list(self, ctx):
+        user_id = ctx.message.user.id
+        add_user(user_id)
+        
+
     @commands.command()
     async def stop(self, ctx):
         if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
