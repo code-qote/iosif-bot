@@ -31,7 +31,7 @@ class ServerRequester:
             session.add(server)
             session.commit()
             requester = QueueRequester()
-            requester.add(self.get_by_discord_id(discord_id)['id'])
+            requester.add(discord_id)
             return {'success': True}
         return {'success': False}
 
@@ -73,7 +73,7 @@ class QueueRequester:
     def add(self, server_id):
         session = create_session()
         if not self.get_by_server_id(server_id)['exist']:
-            queue = Queue(server_id=server_id)
+            queue = Queue(server_id=discord_id_to_id(server_id))
             session.add(queue)
             session.commit()
             return {'success': True}
