@@ -33,14 +33,14 @@ class Server(SqlAlchemyBase, SerializerMixin):
 
     id = sqlalchemy.Column(sqlalchemy.Integer,
                            primary_key=True, autoincrement=True)
-    discord_id = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
+    discord_id = sqlalchemy.Column(sqlalchemy.String, nullable=False)
 
 class User(SqlAlchemyBase, SerializerMixin):
     __tablename__ = 'users'
 
     id = sqlalchemy.Column(sqlalchemy.Integer,
                            primary_key=True, autoincrement=True)
-    discord_id = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
+    discord_id = sqlalchemy.Column(sqlalchemy.String, nullable=False)
     playlists = orm.relationship('Playlist')
 
 class Playlist(SqlAlchemyBase, SerializerMixin):
