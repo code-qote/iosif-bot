@@ -13,10 +13,11 @@ class ServerRequester:
         server = session.query(Server).get(id)
         if not server:
             return {'exist': False}
-        return {'exist': True, 'discord_id': server.discord_id}
+        return {'exist': True, 'discord_id': int(server.discord_id)}
     
     def get_by_discord_id(self, discord_id):
         session = create_session()
+        discord_id = str(discord_id)
         server = session.query(Server).filter_by(discord_id=discord_id).first()
         if not server:
             return {'exist': False}
@@ -24,6 +25,7 @@ class ServerRequester:
     
     def add(self, discord_id):
         session = create_session()
+        discord_id = str(discord_id)
         if not self.get_by_discord_id(discord_id)['exist']:
             server = Server(discord_id=discord_id)
             session.add(server)
@@ -215,6 +217,7 @@ class PlaylistSongRequester:
 class UserRequester:
     def get_by_discord_id(self, discord_id):
         session = create_session()
+        discord_id = str(discord_id)
         user = session.query(User).filter_by(discord_id=discord_id).first()
         if not user:
             return {'exist': False}
@@ -222,6 +225,7 @@ class UserRequester:
     
     def add(self, discord_id):
         session = create_session()
+        discord_id = str(discord_id)
         if not self.get_by_discord_id(discord_id)['exist']:
             user = User(discord_id=discord_id)
             session.add(user)
