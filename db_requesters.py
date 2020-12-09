@@ -31,7 +31,7 @@ class ServerRequester:
             session.add(server)
             session.commit()
             requester = QueueRequester()
-            requester.add(discord_id)
+            requester.add(self.get_by_discord_id(discord_id)['id'])
             return {'success': True}
         return {'success': False}
 
@@ -81,6 +81,7 @@ class QueueRequester:
 class SongRequester:
     def get_from_queue(self, server_id, position):
         session = create_session()
+        server_id = str(server_id)
         queue = session.query(Queue).filter_by(server_id=server_id).first()
         association = session.query(Association_queues_songs).filter_by(queue_id=queue.id, position=position).first()
         if not association:
@@ -132,6 +133,7 @@ class SongRequester:
 class QueueSongRequester:
     def connect_song_queue(self, request, server_id):
         session = create_session()
+        server_id = str(server_id)
         requester = SongRequester()
         song = requester.get_by_request(request)
         requester = QueueRequester()
