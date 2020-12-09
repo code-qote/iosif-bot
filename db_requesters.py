@@ -11,6 +11,7 @@ class ServerRequester:
     def get_by_id(self, id):
         session = create_session()
         server = session.query(Server).get(id)
+        session.close()
         if not server:
             return {'exist': False}
         return {'exist': True, 'discord_id': int(server.discord_id)}
@@ -19,6 +20,7 @@ class ServerRequester:
         session = create_session()
         discord_id = str(discord_id)
         server = session.query(Server).filter_by(discord_id=discord_id).first()
+        session.close()
         if not server:
             return {'exist': False}
         return {'exist': True, 'id': server.id}
@@ -30,8 +32,9 @@ class ServerRequester:
             server = Server(discord_id=discord_id)
             session.add(server)
             session.commit()
+            session.close()
             requester = QueueRequester()
-            requester.add(discord_id)
+            requester.add(discord_id)      
             return {'success': True}
         return {'success': False}
 
@@ -39,6 +42,7 @@ class PlaylistRequester:
     def get_by_user_id_and_name(self, user_id, name):
         session = create_session()
         playlist = session.query(Playlist).filter_by(user_id=user_id, name=name).first()
+        session.close()
         if not playlist:
             return {'exist': False}
         return {'exist': True, 'id': playlist.id}
@@ -46,6 +50,7 @@ class PlaylistRequester:
     def get_by_user_id(self, user_id):
         session = create_session()
         playlists = session.query(Playlist).filter_by(user_id=user_id).all()
+        session.close()
         if not playlists:
             return {'exist': False}
         return {'exist': True, 'playlists': [playlist.name for playlist in playlists]}
@@ -58,6 +63,7 @@ class PlaylistRequester:
             playlist = Playlist(name=name, user_id=user_id)
             session.add(playlist)
             session.commit()
+            session.close()
             return {'success': True}
         return {'success': False}
 
@@ -66,6 +72,7 @@ class QueueRequester:
         session = create_session()
         server_id = discord_id_to_id(server_id)
         queue = session.query(Queue).filter_by(server_id=server_id).first()
+        session.close()
         if not queue:
             return {'exist': False}
         return {'exist': True, 'id': queue.id}
@@ -76,6 +83,7 @@ class QueueRequester:
             queue = Queue(server_id=discord_id_to_id(server_id))
             session.add(queue)
             session.commit()
+            session.close()
             return {'success': True}
         return {'success': False}
 
@@ -85,6 +93,7 @@ class SongRequester:
         server_id = discord_id_to_id(server_id)
         queue = session.query(Queue).filter_by(server_id=server_id).first()
         association = session.query(Association_queues_songs).filter_by(queue_id=queue.id, position=position).first()
+        session.close()
         if not association:
             return {'success': False}
         song = association.song
@@ -93,6 +102,7 @@ class SongRequester:
     def get_from_playlist(self, playlist_id, position):
         session = create_session()
         association = session.query(Association_playlists_songs).filter_by(playlist_id=playlist_id, position=position).first()
+        session.close()
         if not association:
             return {'success': False}
         song = association.song
@@ -101,6 +111,7 @@ class SongRequester:
     def get_by_request(self, request):
         session = create_session()
         song = session.query(Song).filter_by(request=request).first()
+        session.close()
         if not song:
             return {'exist': False}
         return {'exist': True, 'id': song.id}
@@ -111,6 +122,7 @@ class SongRequester:
             song = Song(request=request)
             session.add(song)
             session.commit()
+            session.close()
             return {'success': True}
         return {'success': False}
 
@@ -138,6 +150,7 @@ class QueueSongRequester:
             )
             session.add(associtiation)
             session.commit()
+            session.close()
             return {'success': True}
         return {'success': False}
     
@@ -153,6 +166,7 @@ class QueueSongRequester:
         for item in items:
             session.delete(item)
         session.commit()
+        session.close()
 
 class PlaylistSongRequester:
     def connect_playlist_queue(self, request, playlist_id):
@@ -174,12 +188,16 @@ class PlaylistSongRequester:
             )
             session.add(association)
             session.commit()
+            session.close()
             return {'success': True}
+        session.close()
         return {'success': False}
     
     def get_songs_list(self, playlist_id):
         session = create_session()
-        return [{'request': item.song.request, 'position': item.position} for item in session.query(Association_playlists_songs).filter_by(playlist_id=playlist_id).all()]
+        items = session.query(Association_playlists_songs).filter_by(playlist_id=playlist_id).all()
+        session.close()
+        return [{'request': item.song.request, 'position': item.position} for item in items]
     
     def remove_songs_by_playlist_id(self, playlist_id):
         session = create_session()
@@ -187,6 +205,7 @@ class PlaylistSongRequester:
         for item in items:
             session.delete(item)
         session.commit()
+        session.close()
     
     def remove_song_by_position(self, playlist_id, position):
         session = create_session()
@@ -197,7 +216,9 @@ class PlaylistSongRequester:
             for item in items:
                 item.position += 1
             session.commit()
+            session.close()
             return {'success': True}
+        session.close()
         return {'success': False}
 
 class UserRequester:
@@ -205,6 +226,7 @@ class UserRequester:
         session = create_session()
         discord_id = str(discord_id)
         user = session.query(User).filter_by(discord_id=discord_id).first()
+        session.close()
         if not user:
             return {'exist': False}
         return {'exist': True, 'id': user.id}
@@ -216,6 +238,8 @@ class UserRequester:
             user = User(discord_id=discord_id)
             session.add(user)
             session.commit()
+            session.close()
             return {'success': True}
+        session.close()
         return {'success': False}
     
