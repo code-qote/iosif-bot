@@ -64,6 +64,7 @@ class PlaylistRequester:
 class QueueRequester:
     def get_by_server_id(self, server_id):
         session = create_session()
+        server_id = discord_id_to_id(server_id)
         queue = session.query(Queue).filter_by(server_id=server_id).first()
         if not queue:
             return {'exist': False}
@@ -81,7 +82,7 @@ class QueueRequester:
 class SongRequester:
     def get_from_queue(self, server_id, position):
         session = create_session()
-        server_id = str(server_id)
+        server_id = discord_id_to_id(server_id)
         queue = session.query(Queue).filter_by(server_id=server_id).first()
         association = session.query(Association_queues_songs).filter_by(queue_id=queue.id, position=position).first()
         if not association:
@@ -109,23 +110,6 @@ class SongRequester:
         if not self.get_by_request(request)['exist']:
             song = Song(request=request)
             session.add(song)
-            session.commit()
-            return {'success': True}
-        return {'success': False}
-
-    def connect_song_playlist(self, request, user_id, playlist_name):
-        session = create_session()
-        song = self.get_by_request(request)
-        requester = PlaylistRequester()
-        playlist = requester.get_by_user_id_and_name(user_id, playlist_name)
-        if song['exist'] and playlist['exist']:
-            association = Association_playlists_songs(
-                playlist_id=playlist['id'],
-                song_id=song['id'],
-                playlist=session.query(Playlist).get(playlist['id']),
-                song=session.query(Song).get(song['id'])
-            )
-            session.add(association)
             session.commit()
             return {'success': True}
         return {'success': False}
