@@ -19,6 +19,7 @@ class Music(commands.Cog):
         except:
             channel = ctx_channel
         server_id = ctx.message.guild.id
+        print(server_id)
         queue_current_position[server_id] = queue_current_position.get(server_id, 1)
         add_server(server_id)
         await channel.connect()
