@@ -35,17 +35,20 @@ class QueueMusic(commands.Cog):
             else:
                 await ctx.send('Error')
 
-    async def play_next(self, ctx):
+    def play_next(self, ctx):
         server_id = ctx.message.guild.id
         queue_current_position[server_id] += 1
         request = get_song_from_queue(server_id, queue_current_position[server_id])
         if request:
-            await self.qplay(ctx)
+            coro = self.qplay(ctx)
+            fut = asyncio.run_coroutine_threadsafe(coro, self.bot.loop)
         elif not request and queue_current_position[server_id] == 1:
-            await ctx.send('Queue is clear')
+            coro = ctx.send('Queue is clear')
+            fut = asyncio.run_coroutine_threadsafe(coro, self.bot.loop)
         else:
             queue_current_position[server_id] = 0
-            await self.play_next(ctx)
+            coro = self.play_next(ctx)
+            fut = asyncio.run_coroutine_threadsafe(coro, self.bot.loop)
     
     @commands.command()
     async def qjump(self, ctx, *, keyword):
@@ -61,7 +64,6 @@ class QueueMusic(commands.Cog):
                 await ctx.send('Error')
         except ValueError:
             await ctx.send('Argument must be integer')
-
     
     @commands.command()
     async def qplay(self, ctx):
