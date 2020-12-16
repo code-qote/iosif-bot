@@ -41,14 +41,18 @@ class QueueMusic(commands.Cog):
         request = get_song_from_queue(server_id, queue_current_position[server_id])
         if request:
             coro = self.qplay(ctx)
-            fut = asyncio.run_coroutine_threadsafe(coro, self.bot.loop)
+            if coro:
+                fut = asyncio.run_coroutine_threadsafe(coro, self.bot.loop)
         elif not request and queue_current_position[server_id] == 1:
             coro = ctx.send('Queue is clear')
-            fut = asyncio.run_coroutine_threadsafe(coro, self.bot.loop)
+            if coro:
+                print(queue_current_position[server_id])
+                fut = asyncio.run_coroutine_threadsafe(coro, self.bot.loop)
         else:
             queue_current_position[server_id] = 0
             coro = self.play_next(ctx)
-            fut = asyncio.run_coroutine_threadsafe(coro, self.bot.loop)
+            if coro:
+                fut = asyncio.run_coroutine_threadsafe(coro, self.bot.loop)
     
     @commands.command()
     async def qjump(self, ctx, *, keyword):
