@@ -6,8 +6,7 @@ from consts import *
 import os
 from api import *
 from data import db_session
-from commands import music, playlist_music, queue_music
-
+from commands import music, playlist_music, queue_music, memes
 
 
 if __name__ == '__main__':
@@ -17,6 +16,7 @@ if __name__ == '__main__':
     bot.add_cog(music.Music(bot))
     bot.add_cog(queue_music.QueueMusic(bot))
     bot.add_cog(playlist_music.PlaylistMusic(bot))
+    bot.add_cog(memes.Memes(bot))
     
     bot.run(TOKEN)
 
