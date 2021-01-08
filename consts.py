@@ -1,6 +1,6 @@
 import os
 
-enabled_users = ['Pyatochpock', 'qote0', 'kom1ssv', 'fuw1ee']
+enabled_users = ['Pyatochpock', 'qote0', 'kom1ssv', 'fuw1ee', 'Llevin2005']
 
 TOKEN = '1518381259:AAE_vEybSi2pT7WdPHyybYySTHWPWMT3D6M'
 PORT = int(os.environ.get('PORT', '5000'))
