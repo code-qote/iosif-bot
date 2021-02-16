@@ -10,12 +10,12 @@ from commands import music, playlist_music, queue_music, memes
 
 
 if __name__ == '__main__':
-    db_session.global_init()   
+    db_session.global_init()
     bot = commands.Bot(command_prefix='!')
 
     bot.add_cog(music.Music(bot))
-    bot.add_cog(queue_music.QueueMusic(bot))
-    bot.add_cog(playlist_music.PlaylistMusic(bot))
+    # bot.add_cog(queue_music.QueueMusic(bot))
+    # bot.add_cog(playlist_music.PlaylistMusic(bot))
     bot.add_cog(memes.Memes(bot))
     
     bot.run(TOKEN)

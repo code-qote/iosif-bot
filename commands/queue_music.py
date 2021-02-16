@@ -7,6 +7,7 @@ from youtube import YTDLSource
 
 
 queue_current_position = dict()
+current_coroutine = dict()
 
 
 class QueueMusic(commands.Cog):
@@ -16,7 +17,10 @@ class QueueMusic(commands.Cog):
     @commands.command()
     async def qnext(self, ctx):
         '''next song'''
-        await self.play_next(ctx)
+        if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
+            ctx.voice_client.stop()
+        else:
+            await self.play_next(ctx)
     
     @commands.command()
     async def qprev(self, ctx):
@@ -40,19 +44,16 @@ class QueueMusic(commands.Cog):
         queue_current_position[server_id] += 1
         request = get_song_from_queue(server_id, queue_current_position[server_id])
         if request:
-            coro = self.qplay(ctx)
-            if coro:
-                fut = asyncio.run_coroutine_threadsafe(coro, self.bot.loop)
+            coro = self.bot.loop.create_task(self.qplay(ctx))
+            current_coroutine[server_id] = coro
         elif not request and queue_current_position[server_id] == 1:
-            coro = ctx.send('Queue is clear')
-            if coro:
-                print(queue_current_position[server_id])
-                fut = asyncio.run_coroutine_threadsafe(coro, self.bot.loop)
+            print(queue_current_position[server_id])
+            coro = self.bot.loop.create_task(ctx.send('Queue is clear'))
+            # current_coroutine[server_id] = coro
         else:
             queue_current_position[server_id] = 0
-            coro = self.play_next(ctx)
-            if coro:
-                fut = asyncio.run_coroutine_threadsafe(coro, self.bot.loop)
+            coro = self.bot.loop.create_task(self.play_next(ctx))
+            current_coroutine[server_id] = coro
     
     @commands.command()
     async def qjump(self, ctx, *, keyword):
