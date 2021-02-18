@@ -8,10 +8,15 @@ from discord.ext.commands import bot
 from discord.ext.commands.core import command
 
 
+default_message_reactions = ['⏹️', '⏸️', '⏮️', '⏭️']
+pause_message_reactions = ['⏹️', '▶️', '⏮️', '⏭️']
+
 class Song:
     def __init__(self, ctx, source):
         self.source = source
         self.ctx = ctx
+        self.is_old = False
+        self.message = None
     
     def get_embed(self):
         if self.source:
@@ -35,9 +40,20 @@ class Song:
         duration %= 60
         s = duration
         return f'{int(h)}:{int(m)}:{int(s)}'
+    
+    async def refresh(self, bot):
+        self.source = await YTDLSource.from_url(self.source.title, loop=bot.loop)
+        self.is_old = False
 
+    async def update_message_reactions(self, reactions):
+        await self.message.clear_reactions()
+        for reaction in reactions:
+            await self.message.add_reaction(emoji=reaction)
 
 class SongQueue(asyncio.Queue):
+
+    list_to_show = []
+
     def __getitem__(self, item):
         if isinstance(item, slice):
             return list(itertools.islice(self._queue, item.start, item.stop, item.step))
@@ -76,11 +92,16 @@ class VoiceChannel:
         while True:
             self.next.clear()
 
+            if self.current:
+                await self.current.message.clear_reactions()
             self.current = await self.songs.get()
             self.current.source.volume = 0.5
+            if self.current.is_old:
+                await self.current.refresh(self.bot)
             self.voice.play(self.current.source, after=self.play_next_song)
-            await self.current.ctx.send(embed=self.current.get_embed())
-
+            self.current.is_old = True
+            self.current.message = await self.current.ctx.send(embed=self.current.get_embed())
+            await self.current.update_message_reactions(default_message_reactions)
             await self.next.wait()
 
     def play_next_song(self, error=None):
@@ -91,6 +112,21 @@ class VoiceChannel:
     
     def skip(self):
         self.voice.stop()
+    
+    async def jump(self, ind):
+        if 0 <= ind < len(self.songs.list_to_show):
+            self.songs.clear()
+            for i in range(ind, len(self.songs.list_to_show)):
+                await self.songs.put(self.songs.list_to_show[i])
+            self.voice.stop()
+    
+    async def back(self):
+        ind = self.songs.list_to_show.index(self.current) - 1
+        if ind >= 0:
+            self.songs.clear()
+            for i in range(ind, len(self.songs.list_to_show)):
+                await self.songs.put(self.songs.list_to_show[i])
+            self.voice.stop()
     
     @property
     def is_playing(self):
@@ -136,7 +172,26 @@ class Music(commands.Cog):
     async def _skip(self, ctx: commands.Context):
         '''Skip a song'''
         try:
-            await self.voice_channels[ctx.guild.id].skip()
+            async with ctx.typing():
+                await self.voice_channels[ctx.guild.id].skip()
+        except:
+            pass
+    
+    @commands.command(name='back')
+    async def _back(self, ctx: commands.Context):
+        '''Go back'''
+        try:
+            async with ctx.typing():
+                await self.voice_channels[ctx.guild.id].back()
+        except:
+            pass
+    
+    @commands.command(name='jump')
+    async def _jump(self, ctx: commands.Context, i):
+        '''Jump to song'''
+        try:
+            async with ctx.typing():
+                await self.voice_channels[ctx.guild.id].jump(int(i) - 1)
         except:
             pass
     
@@ -148,30 +203,39 @@ class Music(commands.Cog):
             song = Song(ctx, source)
             server_id = ctx.guild.id
             await self.voice_channels[server_id].songs.put(song)
+            self.voice_channels[server_id].songs.list_to_show.append(song)
             await ctx.send('Added to queue {}'.format(source.title))
-    
+
     @commands.command(name='stop')
     async def _stop(self, ctx: commands.Context):
         '''Have a rest'''
-        server_id = ctx.guild.id
-        self.voice_channels[server_id].songs.clear()
-        self.voice_channels[server_id].voice.stop()
+        self.voice_channels[ctx.guild.id].songs.clear()
+        await self.voice_channels[ctx.guild.id].current.message.clear_reactions()
+        self.voice_channels[ctx.guild.id].voice.stop()
     
     @commands.command(name='pause')
     async def _pause(self, ctx: commands.Context):
         '''Wait please'''
         self.voice_channels[ctx.guild.id].voice.pause()
+        await self.voice_channels[ctx.guild.id].current.update_message_reactions(
+            pause_message_reactions)
     
     @commands.command(name='resume')
     async def _resume(self, ctx: commands.Context):
         '''Yeah, go on'''
         self.voice_channels[ctx.guild.id].voice.resume()
+        await self.voice_channels[ctx.guild.id].current.update_message_reactions(
+            default_message_reactions)
     
     @commands.command(name='list')
     async def _list(self, ctx: commands.Context):
         '''Show list of the next songs'''
-        res = ''
-        for i, v in enumerate(self.voice_channels[ctx.guild.id].songs):
-            res += f'{i + 1}. {v.source.title}\n'
-        await ctx.send(res)
+        async with ctx.typing():
+            res = ''
+            for i, v in enumerate(self.voice_channels[ctx.guild.id].songs.list_to_show):
+                res += f'{i + 1}. {v.source.title}\n'
+            await ctx.send(res)
 
+
+# default_message_reactions = ['⏹️', '⏸️', '⏮️', '⏭️']
+# pause_message_reactions = ['▶️', '⏹️', '⏮️', '⏭️']

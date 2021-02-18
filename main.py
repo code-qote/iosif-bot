@@ -13,15 +13,27 @@ if __name__ == '__main__':
     db_session.global_init()
     bot = commands.Bot(command_prefix='!')
 
-    bot.add_cog(music.Music(bot))
+    music_cog = music.Music(bot)
+    memes_cog = memes.Memes(bot)
+    bot.add_cog(music_cog)
+    bot.add_cog(memes_cog)
     # bot.add_cog(queue_music.QueueMusic(bot))
     # bot.add_cog(playlist_music.PlaylistMusic(bot))
-    bot.add_cog(memes.Memes(bot))
+
+    @bot.event
+    async def on_reaction_add(reaction: discord.Reaction, user):
+        server_id = reaction.message.guild.id
+        if user != bot.user:
+            if reaction.emoji == '⏹️':
+                await music_cog._stop(await bot.get_context(reaction.message))
+            elif reaction.emoji == '⏸️':
+                await music_cog._pause(await bot.get_context(reaction.message))
+            elif reaction.emoji == '⏮️':
+                await music_cog._back(await bot.get_context(reaction.message))
+            elif reaction.emoji == '⏭️':
+                await music_cog._skip(await bot.get_context(reaction.message))
+            elif reaction.emoji == '▶️':
+                await music_cog._resume(await bot.get_context(reaction.message))
     
     bot.run(TOKEN)
 
-    @bot.event
-    async def on_ready():
-        print('Logged in as {0} ({0.id})'.format(bot.user))
-        print('------')
-        discord.opus.load_opus('libopus.so')
