@@ -68,6 +68,7 @@ class SongQueue(asyncio.Queue):
     
     def clear(self):
         self._queue.clear()
+        self.list_to_show.clear()
     
     def remove(self, i):
         del self._queue[i]
