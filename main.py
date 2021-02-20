@@ -6,7 +6,7 @@ from consts import *
 import os
 from api import *
 from data import db_session
-from commands import music, playlist_music, queue_music, memes
+from commands import music, memes
 
 
 if __name__ == '__main__':
