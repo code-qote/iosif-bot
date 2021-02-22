@@ -7,6 +7,7 @@ import os
 from api import *
 from data import db_session
 from commands import music, memes
+from commands.fortnite import fortnite
 
 
 if __name__ == '__main__':
@@ -15,8 +16,10 @@ if __name__ == '__main__':
 
     music_cog = music.Music(bot)
     memes_cog = memes.Memes(bot)
+    fortnite_cog = fortnite.Fortnite(bot)
     bot.add_cog(music_cog)
     bot.add_cog(memes_cog)
+    bot.add_cog(fortnite_cog)
     # bot.add_cog(queue_music.QueueMusic(bot))
     # bot.add_cog(playlist_music.PlaylistMusic(bot))
 
@@ -35,5 +38,5 @@ if __name__ == '__main__':
             elif reaction.emoji == '▶️':
                 await music_cog._resume(await bot.get_context(reaction.message))
     
-    bot.run(TOKEN)
+    bot.run(TOKEN_TEST)
 

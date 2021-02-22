@@ -30,7 +30,8 @@ class Song:
                                 .add_field(name='Author', value=author)
                                 .add_field(name='Duration', value=duration)
                                 .add_field(name='URL', value=url)
-                                .set_thumbnail(url=thumbnail))             
+                                .set_thumbnail(url=thumbnail)
+                                .set_footer(text='Made with ❤️'))            
             return embed
 
     def convert_duration(self, duration):
@@ -71,7 +72,8 @@ class SongQueue(asyncio.Queue):
         self.list_to_show.clear()
     
     def remove(self, i):
-        del self._queue[i]
+        del self._queue[self._queue.index(self.list_to_show[i])]
+        del self.list_to_show[i]
 
 class VoiceChannel:
     def __init__(self, bot: commands.Bot, ctx):
@@ -206,6 +208,11 @@ class Music(commands.Cog):
             await self.voice_channels[server_id].songs.put(song)
             self.voice_channels[server_id].songs.list_to_show.append(song)
             await ctx.send('Added to queue {}'.format(source.title))
+    
+    # @commands.command(name='remove')
+    # async def _remove(self, ctx: commands.Context, i):
+    #     self.voice_channels[ctx.guild.id].remove(i - 1)
+
 
     @commands.command(name='stop')
     async def _stop(self, ctx: commands.Context):
