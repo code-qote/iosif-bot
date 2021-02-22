@@ -119,7 +119,7 @@ def get_store():
     ans.save(filename)
     mega = Mega()
     m = mega.login(mega_email, mega_password)
-    m.delete('store.png')
+    # m.delete('store.png')
     m.upload(filename)
     os.remove(filename)
     print('Store is done!')
