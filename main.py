@@ -38,5 +38,5 @@ if __name__ == '__main__':
             elif reaction.emoji == '▶️':
                 await music_cog._resume(await bot.get_context(reaction.message))
     
-    bot.run(TOKEN_TEST)
+    bot.run(TOKEN)
 
