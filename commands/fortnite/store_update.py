@@ -24,9 +24,10 @@ def check_update_task():
                 get('https://api.fortnitetracker.com/v1/store', headers=headers).content)
         except Exception:
             pass
-        if response != last:
-            last = response
-            get_store()
+        if len(eval(response) > 0):
+            if response != last:
+                last = response
+                get_store(eval(response))
         sleep(60)
 
 def get_size(images_count):
@@ -50,13 +51,8 @@ def get_gradient(innerColor, outerColor, imgsize):
             image.putpixel((x, y), (int(r), int(g), int(b)))
     return image
 
-def get_store():
+def get_store(response):
     print('Getting store...')
-    headers = {'TRN-Api-Key': API_KEY}
-    try:
-        response = eval(get('https://api.fortnitetracker.com/v1/store', headers=headers).content)
-    except Exception:
-        response = eval(get('https://api.fortnitetracker.com/v1/store', headers=headers).content)
     image_size = get_size(len(response))
     images = []
     k = 0
@@ -119,7 +115,8 @@ def get_store():
     ans.save(filename)
     mega = Mega()
     m = mega.login(mega_email, mega_password)
-    # m.delete('store.png')
+    old_file = m.find('store.png')
+    m.delete(old_file[0])
     m.upload(filename)
     os.remove(filename)
     print('Store is done!')

@@ -37,8 +37,9 @@ class Fortnite(commands.Cog):
         return embed
     
     @commands.command(name='stats')
-    async def _stats(self, ctx: commands.Context, platform, nickname):
+    async def _stats(self, ctx: commands.Context, platform, *nickname):
         '''!stats {pc/xbl/psn} {epic-nickname}'''
+        nickname = ' '.join(nickname)
         async with ctx.typing(): 
             headers = {'TRN-Api-Key': API_KEY}
             async with aiohttp.ClientSession() as session:
@@ -58,10 +59,12 @@ class Fortnite(commands.Cog):
                             stats_type = 'Duos stats'
                             picture = None
                             footer = None
+                            nickname = ''
                         elif stat == 'p9':
                             stats_type = 'Squad stats'
                             footer = 'Made with ❤️'
                             picture = None
+                            nickname = ''
                         wins = stats[stat]['top1']['displayValue']
                         kd = stats[stat]['kd']['displayValue']
                         win_ratio = stats[stat]['winRatio']['displayValue']
