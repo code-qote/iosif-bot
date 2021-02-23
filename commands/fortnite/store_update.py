@@ -24,10 +24,10 @@ def check_update_task():
                 get('https://api.fortnitetracker.com/v1/store', headers=headers).content)
         except Exception:
             pass
-        if len(eval(response) > 0):
+        if len(response):
             if response != last:
                 last = response
-                get_store(eval(response))
+                get_store(response)
         sleep(60)
 
 def get_size(images_count):
