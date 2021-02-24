@@ -3,9 +3,14 @@ import discord
 from discord.ext import commands
 import asyncio
 import itertools
+
+from requests.sessions import session
 from youtube import YTDLSource
 from discord.ext.commands import bot
 from discord.ext.commands.core import command
+from data.db_session import create_session
+from data.__all_models import Track_db
+from .radio import Track, RadioEngine
 
 
 default_message_reactions = ['⏹️', '⏸️', '⏮️', '⏭️']
@@ -22,6 +27,8 @@ class Song:
         if self.source:
             title = self.source.title
             author = self.source.data['uploader']
+            r = RadioEngine()
+            self.add_to_bd(Track(title, author, r.sp), self.ctx.guild.id)
             duration = self.convert_duration(self.source.data['duration'])
             url = self.source.data['webpage_url']
             thumbnail = self.source.data['thumbnails'][0]['url']
@@ -41,6 +48,19 @@ class Song:
         duration %= 60
         s = duration
         return f'{int(h)}:{int(m)}:{int(s)}'
+    
+    def add_to_bd(self, track: Track, server_id):
+        session = create_session()
+        track_to_bd = Track_db(
+            spotify_id=track.id,
+            uri=track.uri,
+            name=track.name,
+            artist=track.artist,
+            server_id=str(server_id)
+        )
+        session.add(track_to_bd)
+        session.commit()
+        session.close()
     
     async def refresh(self, bot):
         self.source = await YTDLSource.from_url(self.source.title, loop=bot.loop)
@@ -243,7 +263,3 @@ class Music(commands.Cog):
             for i, v in enumerate(self.voice_channels[ctx.guild.id].songs.list_to_show):
                 res += f'{i + 1}. {v.source.title}\n'
             await ctx.send(res)
-
-
-# default_message_reactions = ['⏹️', '⏸️', '⏮️', '⏭️']
-# pause_message_reactions = ['▶️', '⏹️', '⏮️', '⏭️']
