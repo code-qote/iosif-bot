@@ -33,7 +33,6 @@ class Track:
         self._get_info(name, artist)
     
     def _get_info(self, name, artist):
-        name = name.replace(artist, '')
         info = self.sp.search(q='artist:' + artist + ' track:' +
                          name, type='track', limit=1)
         track = info['tracks']['items'][0]

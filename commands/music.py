@@ -26,9 +26,10 @@ class Song:
     def get_embed(self):
         if self.source:
             title = self.source.title
-            author = self.source.data['uploader']
-            # r = RadioEngine()
-            # self.add_to_bd(Track(title, author, r.sp), self.ctx.guild.id)
+            author = self.source.data['artist']
+            track = self.source.data['track']
+            r = RadioEngine()
+            self.add_to_bd(Track(track, author, r.sp), self.ctx.guild.id)
             duration = self.convert_duration(self.source.data['duration'])
             url = self.source.data['webpage_url']
             thumbnail = self.source.data['thumbnails'][0]['url']
@@ -51,15 +52,16 @@ class Song:
     
     def add_to_bd(self, track: Track, server_id):
         session = create_session()
-        track_to_bd = Track_db(
-            spotify_id=track.id,
-            uri=track.uri,
-            name=track.name,
-            artist=track.artist.name,
-            server_id=str(server_id)
-        )
-        session.add(track_to_bd)
-        session.commit()
+        if not session.query(Track_db).filter_by(spotify_id=track.id).first():
+            track_to_bd = Track_db(
+                spotify_id=track.id,
+                uri=track.uri,
+                name=track.name,
+                artist=track.artist.name,
+                server_id=str(server_id)
+            )
+            session.add(track_to_bd)
+            session.commit()
         session.close()
     
     async def refresh(self, bot):
