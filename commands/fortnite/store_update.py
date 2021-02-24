@@ -73,9 +73,13 @@ def get_store(response):
         for i in name:
             s += symbols_to_pixels.get(i, 25)
         s += len(name) - 1
+        font_size = 64
+        while result_size[0] - s <= 0:
+            s = round(s / 1.33)
+            font_size = round(font_size / 1.33)
         offset = ((result_size[0] - s) // 2, image_size[0] + 10)
         draw = ImageDraw.Draw(result)
-        font = ImageFont.truetype('commands/fortnite/font.ttf', 64)
+        font = ImageFont.truetype('commands/fortnite/font.ttf', font_size)
         draw.text(offset, name, (255, 255, 255), font=font)
 
         vbucks = Image.open('commands/fortnite/vbucks.png').convert('RGBA')
