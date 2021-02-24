@@ -55,7 +55,7 @@ class Song:
             spotify_id=track.id,
             uri=track.uri,
             name=track.name,
-            artist=track.artist,
+            artist=track.artist.name,
             server_id=str(server_id)
         )
         session.add(track_to_bd)
