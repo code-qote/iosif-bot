@@ -27,8 +27,8 @@ class Song:
         if self.source:
             title = self.source.title
             author = self.source.data['uploader']
-            r = RadioEngine()
-            self.add_to_bd(Track(title, author, r.sp), self.ctx.guild.id)
+            # r = RadioEngine()
+            # self.add_to_bd(Track(title, author, r.sp), self.ctx.guild.id)
             duration = self.convert_duration(self.source.data['duration'])
             url = self.source.data['webpage_url']
             thumbnail = self.source.data['thumbnails'][0]['url']
