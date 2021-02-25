@@ -86,6 +86,8 @@ def get_store(response):
         vbucks_size = vbucks.size[0] // 4, vbucks.size[1] // 4
         vbucks = vbucks.resize(vbucks_size)
         price = str(image_info['vBucks'])
+        if price == '0':
+            price = '???'
         s = 0 
         for i in price:
             s += symbols_to_pixels.get(i, 25)
