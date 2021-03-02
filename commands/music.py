@@ -30,7 +30,10 @@ class Song:
             track = self.source.data['track']
             if track and author:
                 r = RadioEngine()
-                self.add_to_bd(Track(track, author, r.sp), self.ctx.guild.id)
+                try:
+                    self.add_to_bd(Track(track, author, r.sp), self.ctx.guild.id)
+                except Exception:
+                    pass
             else:
                 author = self.source.data['uploader']
             duration = self.convert_duration(self.source.data['duration'])
