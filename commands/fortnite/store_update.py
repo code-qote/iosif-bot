@@ -60,7 +60,10 @@ def get_store(response):
         url = image_info['imageUrl']
         with open('commands/fortnite/image.png', 'wb') as file:
             file.write(get(url).content)
-        image = Image.open('commands/fortnite/image.png').convert('RGBA')
+        try:
+            image = Image.open('commands/fortnite/image.png').convert('RGBA')
+        except Exception:
+            continue
         image = image.resize(image_size)
 
         result = get_gradient(*rarity_colors.get(image_info['rarity'], ([31, 31, 31], [
