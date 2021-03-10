@@ -8,8 +8,10 @@ from discord.ext.commands.core import command
 import aiohttp
 import threading
 from .store_update import check_update_task
-from .fort_consts import API_KEY, mega_email, mega_password, mega_token
+from .fort_consts import API_KEY, mega_email, mega_password, mega_token, DROPBOX_TOKEN
 from mega import Mega
+import dropbox
+import os
 
 
 class Fortnite(commands.Cog):
@@ -83,10 +85,15 @@ class Fortnite(commands.Cog):
 
     @commands.command(name='store')
     async def _store(self, ctx: commands.Context):
+        '''Get Fortnite store'''
         async with ctx.typing():
-            mega = Mega()
-            m = mega.login(mega_email, mega_password)
-            file = m.find('store.png')
-            m.download(file)
-            with open('store.png', 'rb') as file:
-                await ctx.send(file=discord.File(file))
+            dbx = dropbox.Dropbox(DROPBOX_TOKEN)
+            dbx.users_get_current_account()
+            for i in dbx.files_list_folder('/stores').entries:
+                metadata, file_to_download = dbx.files_download(
+                    f'/stores/{i.name}')
+                with open(i.name, 'wb') as file:
+                    file.write(file_to_download.content)
+                with open(i.name, 'rb') as file:
+                    await ctx.send(file=discord.File(file))
+                os.remove(i.name)
