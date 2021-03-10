@@ -3,6 +3,7 @@ import datetime
 from math import ceil, sqrt
 from time import sleep, time
 from mega import Mega
+import dropbox
 
 import pytz
 from PIL import Image, ImageDraw, ImageFont
@@ -104,28 +105,33 @@ def get_store(response):
         k += 1
         images.append(result)    
     result_size = (ceil((default_size - 7 * 30) / 6), ceil((default_size - 7 * 30) / 6))
-    ans = get_gradient([37, 184, 229, 255], [
-                       22, 136, 171, 255], (default_size - result_size[0], default_size - result_size[1]))
-    i = 30
     k = 0
-    ans_size = ans.size
-    while k < len(images) and i + result_size[0] + 30 <= ans_size[0]:
-        j = 30
-        while k < len(images) and j + result_size[1] + 30 <= ans_size[1]:
-            image = images[k].resize(result_size)
-            ans.paste(image, (j, i))
-            k += 1
-            j += result_size[1] + 30
-        i += result_size[0] + 30
-    draw = ImageDraw.Draw(ans)
-    font = ImageFont.truetype('commands/fortnite/font.ttf', 24)
-    draw.text((10, ans_size[1] - 30), '@Iosif', (255, 255, 255), font=font)
-    filename = 'commands/fortnite/store.png'
-    ans.save(filename)
-    mega = Mega()
-    m = mega.login(mega_email, mega_password)
-    old_file = m.find('store.png')
-    m.delete(old_file[0])
-    m.upload(filename)
-    os.remove(filename)
+    file_number = 0
+    while k < len(images):
+        ans = get_gradient([37, 184, 229, 255], [
+            22, 136, 171, 255], (default_size - result_size[0], default_size - result_size[1]))
+        i = 30
+        ans_size = ans.size
+        while k < len(images) and i + result_size[0] + 30 <= ans_size[0]:
+            j = 30
+            while k < len(images) and j + result_size[1] + 30 <= ans_size[1]:
+                image = images[k].resize(result_size)
+                ans.paste(image, (j, i))
+                k += 1
+                j += result_size[1] + 30
+            i += result_size[0] + 30
+        draw = ImageDraw.Draw(ans)
+        font = ImageFont.truetype('commands/fortnite/font.ttf', 24)
+        draw.text((10, ans_size[1] - 30), '@Iosif', (255, 255, 255), font=font)
+        filename = f'commands/fortnite/store{file_number}.png'
+        file_number += 1
+        ans.save(filename)
+    dbx = dropbox.Dropbox(DROPBOX_TOKEN)
+    dbx.users_get_current_account()
+    for i in range(file_number):
+        with open(f'commands/fortnite/store{i}.png', 'rb') as file:
+            dbx.files_upload(file.read(), f'/stores/store{i}.png')
+    sleep(3)
+    for i in range(file_number):
+        os.remove(f'commands/fortnite/store{i}.png')
     print('Store is done!')
