@@ -23,3 +23,5 @@ symbols_to_pixels = {'a': 26, 'b': 28, 'c': 27, 'd': 27, 'e': 28, 'f': 20, 'g': 
 mega_token = 'Gr0a4ZaN0Nq6Q7QfwTAr6w'
 mega_email = 'iosif.bot@yandex.ru'
 mega_password = 'for_bot123'
+
+DROPBOX_TOKEN = 'sl.Asxpw56t0VrfTF_vlTf2To1rXHpeCb-qCxAO7zu4pfeXCunOJCFWAyqdX2NngvROTa8ILfIB5-udMZHxEDFNgDktaQGVIHzyxSAYMhwBhO-IWoRpwt25KGN5NuXN4GEbP3CMseoE'
