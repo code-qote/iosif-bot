@@ -130,7 +130,8 @@ def get_store(response):
     dbx.users_get_current_account()
     for i in range(file_number):
         with open(f'commands/fortnite/store{i}.png', 'rb') as file:
-            dbx.files_upload(file.read(), f'/stores/store{i}.png')
+            dbx.files_upload(
+                file.read(), f'/stores/store{i}.png', mode=dropbox.files.WriteMode.overwrite)
     sleep(3)
     for i in range(file_number):
         os.remove(f'commands/fortnite/store{i}.png')
