@@ -45,6 +45,8 @@ class Fortnite(commands.Cog):
         if not stats:
             return None
         k = 0
+        to_embed = []
+        used = set()
         for stat in stats.keys():
             if k < 3:
                 if stat != 'ltm':
@@ -69,19 +71,23 @@ class Fortnite(commands.Cog):
                     matches = stats[stat]['matches']['displayValue']
                     kills = stats[stat]['kills']['displayValue']
                     time_played = stats[stat]['minutesPlayed']['displayValue']
-        return self.get_embed(stats_type, nickname, picture, wins, kd,
-                            win_ratio, matches, kills, time_played, footer)
+                if stats_type not in used:
+                    to_embed.append(self.get_embed(stats_type, nickname, picture, wins, kd,
+                                    win_ratio, matches, kills, time_played, footer))
+                    used.add(stats_type)
+        return to_embed
     
     @commands.command(name='stats')
     async def _stats(self, ctx: commands.Context, platform, *nickname):
         '''!stats {pc/xbl/psn} {epic-nickname}'''
         nickname = ' '.join(nickname)
         async with ctx.typing():
-            stats = self.get_stats(platform, nickname)
+            stats = await self.get_stats(platform, nickname)
             if not stats:
                 await ctx.send("The player wasn't found")
             else:
-                await ctx.send(embed=stats)
+                for embed in stats:
+                    await ctx.send(embed=embed)
 
     @commands.command(name='store')
     async def _store(self, ctx: commands.Context):
