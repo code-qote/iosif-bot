@@ -13,7 +13,7 @@ import os
 import numpy as np
 
 # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-pytesseract.pytesseract.tesseract_cmd = ".apt/usr/include/tesseract"
+pytesseract.pytesseract.tesseract_cmd = ".apt/usr/bin/tesseract"
 
 parser_image = reqparse.RequestParser()
 parser_image.add_argument('image_url', required=True)
