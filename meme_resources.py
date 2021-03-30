@@ -11,6 +11,7 @@ from random import randint
 from googletrans import Translator
 import os
 import numpy as np
+import string
 
 # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 pytesseract.pytesseract.tesseract_cmd = "/app/vendor/tesseract-ocr/bin/tesseract"
@@ -39,11 +40,11 @@ def get_text_from_image(image_path):
     details = pytesseract.image_to_data(image, output_type=Output.DICT, lang='eng')
     for word in details['text']:
         if word != '':
-            word_list.append(word)
-            last_word = word
-        if (last_word != '' and word == '') or (word == details['text'][-1]):
-            parse_text.append(word_list)
-            word_list = []
+            parse_text.append(word)
+    for i in range(len(parse_text)):
+        if parse_text[i][0] in string.ascii_uppercase and i != 0 and parse_text[i - 1][-1] not in '.:?!':
+            parse_text[i - 1] += '.'
+    print(parse_text)
     return parse_text
 
 class TranslateImageResource(Resource):
@@ -56,7 +57,7 @@ class TranslateImageResource(Resource):
             filename = str(randint(10000, 99999)) + '.jpg'
             with open(filename, 'wb') as file:
                 file.write(response.content)
-            text = ' '.join([' '.join(i) for i in get_text_from_image(filename)])
+            text = ' '.join(get_text_from_image(filename))
             translator = Translator(service_urls=[
                                     'translate.google.ru',
                                     'translate.google.com',
