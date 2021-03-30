@@ -13,7 +13,6 @@ from commands.fortnite import fortnite
 if __name__ == '__main__':
     db_session.global_init()
     bot = commands.Bot(command_prefix='!')
-
     music_cog = music.Music(bot)
     memes_cog = memes.Memes(bot)
     fortnite_cog = fortnite.Fortnite(bot)
@@ -37,6 +36,8 @@ if __name__ == '__main__':
                 await music_cog._skip(await bot.get_context(reaction.message))
             elif reaction.emoji == '▶️':
                 await music_cog._resume(await bot.get_context(reaction.message))
+            elif reaction.emoji in languages:
+                await memes_cog.translate(await bot.get_context(reaction.message), languages[reaction.emoji])
     
     bot.run(TOKEN)
 
