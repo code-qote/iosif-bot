@@ -14,5 +14,6 @@ api = Api(app)
 
 if __name__ == '__main__':
     api.add_resource(TranslateImageResource, '/api/v1/translate_image')
+    api.add_resource(TranslateText, '/api/v1/translate_text')
     app.run(host='0.0.0.0', port=os.environ.get("PORT", 5000))
     # app.run(port=8080, host='127.0.0.1')
