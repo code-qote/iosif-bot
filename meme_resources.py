@@ -75,7 +75,7 @@ class TranslateImageResource(Resource):
 
 class TranslateText(Resource):
     def get(self):
-        args = parser_image.parse_args()
+        args = parser_text.parse_args()
         text = args['text']
         language = args['language']
         translator = Translator(service_urls=[
