@@ -30,21 +30,26 @@ def get_text_from_image(image_path):
     image = cv2.threshold(
         gray_image, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
     kernel = np.ones((2, 2), np.uint8)
-    image = cv2.dilate(image, kernel, iterations=2)
-    image = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
+    dilated_image = cv2.dilate(image, kernel, iterations=2)
+    dilated_image = cv2.morphologyEx(dilated_image, cv2.MORPH_OPEN, kernel)
     h, w = image.shape
-    cv2.rectangle(image, (0, h - 30), (round(w * 0.25), h), (0, 0, 0), -1)
     parse_text = []
     word_list = []
     last_word = ''
-    details = pytesseract.image_to_data(image, output_type=Output.DICT, lang='eng')
+    dilated_details = pytesseract.image_to_data(dilated_image, output_type=Output.DICT, lang='eng')
+    default_details = pytesseract.image_to_data(
+        image, output_type=Output.DICT, lang='eng')
+    if len(dilated_details) > len(default_details):
+        details = dilated_details
+    else:
+        details = default_details
     for word in details['text']:
         if word != '':
             parse_text.append(word)
     for i in range(len(parse_text)):
         if parse_text[i][0] in string.ascii_uppercase and i != 0 and parse_text[i - 1][-1] not in '.:?!':
             parse_text[i - 1] += '.'
-    print(parse_text)
+    # print(parse_text)
     return parse_text
 
 class TranslateImageResource(Resource):
