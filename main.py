@@ -24,7 +24,6 @@ if __name__ == '__main__':
 
     @bot.event
     async def on_reaction_add(reaction: discord.Reaction, user):
-        server_id = reaction.message.guild.id
         if user != bot.user:
             if reaction.emoji == '⏹️':
                 await music_cog._stop(await bot.get_context(reaction.message))
@@ -36,6 +35,10 @@ if __name__ == '__main__':
                 await music_cog._skip(await bot.get_context(reaction.message))
             elif reaction.emoji == '▶️':
                 await music_cog._resume(await bot.get_context(reaction.message))
+            elif reaction.emoji == '👍':
+                await music_cog.like_song(await bot.get_context(reaction.message))
+            elif reaction.emoji == '👎':
+                await music_cog.unlike_song(await bot.get_context(reaction.message))
             elif reaction.emoji in languages:
                 await memes_cog.translate(await bot.get_context(reaction.message), languages[reaction.emoji])
     

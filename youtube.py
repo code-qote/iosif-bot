@@ -25,7 +25,10 @@ class YTDLSource(PCMVolumeTransformer):
         except Exception():
             return False
         if 'entries' in data:
-            data = data['entries'][0]
+            try:
+                data = data['entries'][0]
+            except IndexError:
+                return
 
         filename = data['url'] if stream else ytdl.prepare_filename(data)
         try:
