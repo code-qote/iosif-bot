@@ -24,6 +24,7 @@ INTRO_URL = 'https://youtu.be/91D2V8W8Sy0'
 
 
 def get_tracks_from_db(server_id):
+    server_id = str(server_id)
     session = create_session()
     tracks = session.query(Track_db).filter_by(server_id=server_id).all()
     if not tracks:
@@ -151,6 +152,7 @@ class Song:
         return f'{int(h)}:{int(m)}:{int(s)}'
 
     def add_to_db(self, server_id):
+        server_id = str(server_id)
         session = create_session()
         if not session.query(Track_db).filter_by(spotify_id=self.id).first():
             track_to_bd = Track_db(
@@ -165,6 +167,7 @@ class Song:
         session.close()
     
     def remove_from_db(self, server_id, uri):
+        server_id = str(server_id)
         session = create_session()
         track = session.query(Track_db).filter_by(server_id=server_id, uri=uri).first()
         session.delete(track)
