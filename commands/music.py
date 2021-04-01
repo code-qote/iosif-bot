@@ -1,179 +1,65 @@
-from urllib import request
-import discord
-from discord.ext import commands
 import asyncio
+import io
 import itertools
+from urllib import request
 
-from requests.sessions import session
-from youtube import YTDLSource
+import discord
+from data.__all_models import Track_db
+from data.db_session import create_session
+from discord.ext import commands
 from discord.ext.commands import bot
 from discord.ext.commands.core import command
-from data.db_session import create_session
-from data.__all_models import Track_db
-from .radio import Track, RadioEngine
+from requests.sessions import session
+from youtube import YTDLSource
 
+from ._all_classes import *
 
 default_message_reactions = ['⏹️', '⏸️', '⏮️', '⏭️']
 pause_message_reactions = ['⏹️', '▶️', '⏮️', '⏭️']
+default_radio_message_reactions = ['⏹️', '⏸️', '⏭️', '👍', '👎']
+pause_radio_message_reactions = ['⏹️', '▶️', '⏭️', '👍', '👎']
 
-class Song:
-    def __init__(self, ctx, source):
-        self.source = source
-        self.ctx = ctx
-        self.is_old = False
-        self.message = None
-    
-    def get_embed(self):
-        if self.source:
-            title = self.source.title
-            author = self.source.data['artist']
-            track = self.source.data['track']
-            if track and author:
-                r = RadioEngine()
-                try:
-                    self.add_to_bd(Track(track, author, r.sp), self.ctx.guild.id)
-                except Exception:
-                    pass
-            else:
-                author = self.source.data['uploader']
-            duration = self.convert_duration(self.source.data['duration'])
-            url = self.source.data['webpage_url']
-            thumbnail = self.source.data['thumbnails'][0]['url']
-            embed = (discord.Embed(title='Now playing:',
-                                description=title, color=discord.Color.blurple())
-                                .add_field(name='Author', value=author)
-                                .add_field(name='Duration', value=duration)
-                                .add_field(name='URL', value=url)
-                                .set_thumbnail(url=thumbnail)
-                                .set_footer(text='Made with ❤️'))            
-            return embed
 
-    def convert_duration(self, duration):
-        h = duration // 3600
-        duration %= 3600
-        m = duration // 60
-        duration %= 60
-        s = duration
-        return f'{int(h)}:{int(m)}:{int(s)}'
-    
-    def add_to_bd(self, track: Track, server_id):
-        session = create_session()
-        if not session.query(Track_db).filter_by(spotify_id=track.id).first():
-            track_to_bd = Track_db(
-                spotify_id=track.id,
-                uri=track.uri,
-                name=track.name,
-                artist=track.artist.name,
-                server_id=str(server_id)
-            )
-            session.add(track_to_bd)
-            session.commit()
-        session.close()
-    
-    async def refresh(self, bot):
-        self.source = await YTDLSource.from_url(self.source.title, loop=bot.loop)
-        self.is_old = False
+async def send_info(ctx, title, message):
+    await ctx.send(embed=discord.Embed(title=title, description=message, color=discord.Color.greyple()))
 
-    async def update_message_reactions(self, reactions):
-        await self.message.clear_reactions()
-        for reaction in reactions:
-            await self.message.add_reaction(emoji=reaction)
+async def send_error(ctx, message):
+    await ctx.send(embed=discord.Embed(title=message, color=discord.Color.red()))
 
-class SongQueue(asyncio.Queue):
+async def send_success(ctx, message):
+    await ctx.send(embed=discord.Embed(title=message, color=discord.Color.green()))
 
-    list_to_show = []
-
-    def __getitem__(self, item):
-        if isinstance(item, slice):
-            return list(itertools.islice(self._queue, item.start, item.stop, item.step))
-        else:
-            return self._queue[item]
-        
-    def __iter__(self):
-        return self._queue.__iter__()
-    
-    def __len__(self):
-        return self.qsize()
-    
-    def clear(self):
-        self._queue.clear()
-        self.list_to_show.clear()
-    
-    def remove(self, i):
-        del self._queue[self._queue.index(self.list_to_show[i])]
-        del self.list_to_show[i]
-
-class VoiceChannel:
-    def __init__(self, bot: commands.Bot, ctx):
-        self.bot = bot
-        self._ctx = ctx
-
-        self.current = None
-        self.voice = None
-        self.next = asyncio.Event()
-        self.songs = SongQueue()
-
-        self.audio_player = self.bot.loop.create_task(self.audio_player_task())
-        asyncio.gather(self.audio_player)
-    
-    def __del__(self):
-        self.audio_player.cancel()
-    
-    async def audio_player_task(self):
-        while True:
-            self.next.clear()
-
-            if self.current:
-                await self.current.message.clear_reactions()
-            self.current = await self.songs.get()
-            self.current.source.volume = 0.5
-            if self.current.is_old:
-                await self.current.refresh(self.bot)
-            self.voice.play(self.current.source, after=self.play_next_song)
-            self.current.is_old = True
-            self.current.message = await self.current.ctx.send(embed=self.current.get_embed())
-            await self.current.update_message_reactions(default_message_reactions)
-            await self.next.wait()
-
-    def play_next_song(self, error=None):
-        if error:
-            print(error)
-        else:
-            self.next.set()
-    
-    def skip(self):
-        self.voice.stop()
-    
-    async def jump(self, ind):
-        if 0 <= ind < len(self.songs.list_to_show):
-            self.songs.clear()
-            for i in range(ind, len(self.songs.list_to_show)):
-                await self.songs.put(self.songs.list_to_show[i])
-            self.voice.stop()
-    
-    async def back(self):
-        ind = self.songs.list_to_show.index(self.current) - 1
-        if ind >= 0:
-            self.songs.clear()
-            for i in range(ind, len(self.songs.list_to_show)):
-                await self.songs.put(self.songs.list_to_show[i])
-            self.voice.stop()
-    
-    @property
-    def is_playing(self):
-        return self.voice and self.current
-    
-    async def leave(self):
-        self.songs.clear()
-
-        if self.voice:
-            await self.voice.disconnect()
-            self.voice = None        
 
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.voice_channels = dict()
+    
+    async def like_song(self, ctx):
+        voice_channel = self.get_voice_channel(ctx)
+        current = voice_channel.current
+        current.add_to_db(ctx.guild.id)
+        current.liked = True
+        await current.refresh_message()
+        if self.voice_channels[ctx.guild.id].voice.is_playing():
+            await self.voice_channels[ctx.guild.id].current.update_message_reactions(
+                default_radio_message_reactions)
+        elif self.voice_channels[ctx.guild.id].voice.is_paused():
+            await self.voice_channels[ctx.guild.id].current.update_message_reactions(
+                pause_radio_message_reactions)
+    
+    async def unlike_song(self, ctx):
+        voice_channel = self.get_voice_channel(ctx)
+        current = voice_channel.current
+        current.remove_from_db(ctx.guild.id, current.uri)
+        current.liked = False
+        await current.refresh_message()
+        if self.voice_channels[ctx.guild.id].voice.is_playing():
+            await self.voice_channels[ctx.guild.id].current.update_message_reactions(
+                default_radio_message_reactions)
+        elif self.voice_channels[ctx.guild.id].voice.is_paused():
+            await self.voice_channels[ctx.guild.id].current.update_message_reactions(
+                pause_radio_message_reactions)
     
     def get_voice_channel(self, ctx): 
         server_id = ctx.guild.id
@@ -230,21 +116,31 @@ class Music(commands.Cog):
     async def _play(self, ctx: commands.Context, *, keyword):
         '''Hey, Iosif. Light up the dance floor!'''
         async with ctx.typing():
-            source = await YTDLSource.from_url(keyword, loop=self.bot.loop)
-            song = Song(ctx, source)
             server_id = ctx.guild.id
-            await self.voice_channels[server_id].songs.put(song)
-            self.voice_channels[server_id].songs.list_to_show.append(song)
-            await ctx.send('Added to queue {}'.format(source.title))
+            if not self.voice_channels[server_id].radio_mode:
+                source = await YTDLSource.from_url(keyword, loop=self.bot.loop)
+                song = Song()
+                await song._get_info_from_YT(keyword, self.bot, ctx)
+                await self.voice_channels[server_id].songs.put(song)
+                self.voice_channels[server_id].songs.list_to_show.append(song)
+                await send_success(ctx, 'Added to queue {}'.format(source.title))
+            else:
+                await send_error(ctx, 'You must stop radio at first!')
     
     # @commands.command(name='remove')
     # async def _remove(self, ctx: commands.Context, i):
     #     self.voice_channels[ctx.guild.id].remove(i - 1)
 
+    @commands.command(name='radio')
+    async def _radio(self, ctx: commands.Context):
+        '''Turn on the radio'''
+        await self.voice_channels[ctx.guild.id].radio(ctx)
 
     @commands.command(name='stop')
     async def _stop(self, ctx: commands.Context):
         '''Have a rest'''
+        self.voice_channels[ctx.guild.id].radio_mode = False
+        self.voice_channels[ctx.guild.id].is_loading = False
         self.voice_channels[ctx.guild.id].songs.clear()
         await self.voice_channels[ctx.guild.id].current.message.clear_reactions()
         self.voice_channels[ctx.guild.id].voice.stop()
@@ -253,15 +149,23 @@ class Music(commands.Cog):
     async def _pause(self, ctx: commands.Context):
         '''Wait please'''
         self.voice_channels[ctx.guild.id].voice.pause()
-        await self.voice_channels[ctx.guild.id].current.update_message_reactions(
-            pause_message_reactions)
+        if not self.voice_channels[ctx.guild.id].radio_mode:
+            await self.voice_channels[ctx.guild.id].current.update_message_reactions(
+                pause_message_reactions)
+        else:
+            await self.voice_channels[ctx.guild.id].current.update_message_reactions(
+                pause_radio_message_reactions)
     
     @commands.command(name='resume')
     async def _resume(self, ctx: commands.Context):
         '''Yeah, go on'''
         self.voice_channels[ctx.guild.id].voice.resume()
-        await self.voice_channels[ctx.guild.id].current.update_message_reactions(
-            default_message_reactions)
+        if not self.voice_channels[ctx.guild.id].radio_mode:
+            await self.voice_channels[ctx.guild.id].current.update_message_reactions(
+                default_message_reactions)
+        else:
+            await self.voice_channels[ctx.guild.id].current.update_message_reactions(
+                default_radio_message_reactions)
     
     @commands.command(name='list')
     async def _list(self, ctx: commands.Context):
@@ -270,4 +174,15 @@ class Music(commands.Cog):
             res = ''
             for i, v in enumerate(self.voice_channels[ctx.guild.id].songs.list_to_show):
                 res += f'{i + 1}. {v.source.title}\n'
-            await ctx.send(res)
+            if res:
+                await send_info(ctx, 'List', res)
+            else:
+                await send_info(ctx, 'List', 'The queue is empty.')
+    
+    @commands.command(name='update')
+    async def _update(self, ctx: commands.Context):
+        '''Get information about last update'''
+        async with ctx.typing():
+            with io.open('patch-note.txt', 'r', encoding='utf-8') as file:
+                text = file.read()
+                await send_info(ctx, 'Patch Note', text)

@@ -8,8 +8,7 @@ from discord.ext.commands.core import command
 import aiohttp
 import threading
 from .store_update import check_update_task
-from .fort_consts import API_KEY, mega_email, mega_password, mega_token, DROPBOX_TOKEN
-from mega import Mega
+from .fort_consts import API_KEY, DROPBOX_TOKEN
 import dropbox
 import os
 
