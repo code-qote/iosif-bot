@@ -22,7 +22,7 @@ class YTDLSource(PCMVolumeTransformer):
         loop = loop or asyncio.get_event_loop()
         try:
             data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
-        except Exception():
+        except Exception:
             return False
         if 'entries' in data:
             try:
