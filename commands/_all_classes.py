@@ -15,10 +15,10 @@ from data.__all_models import Track_db
 import spotipy
 
 
-default_message_reactions = ['⏹️', '⏸️', '⏮️', '⏭️']
-pause_message_reactions = ['⏹️', '▶️', '⏮️', '⏭️']
-default_radio_message_reactions = ['⏹️', '⏸️', '⏭️', '👍']
-pause_radion_message_reactions = ['⏹️', '▶️', '⏭️', '👍']
+default_message_reactions = ['⏹️', '⏸️', '⏮️', '⏭️', '👍', '👎']
+pause_message_reactions = ['⏹️', '▶️', '⏮️', '⏭️', '👍', '👎']
+default_radio_message_reactions = ['⏹️', '⏸️', '⏭️', '👍', '👎']
+pause_radio_message_reactions = ['⏹️', '▶️', '⏭️', '👍', '👎']
 INTRO_URL = 'https://youtu.be/91D2V8W8Sy0'
 
 
@@ -67,6 +67,7 @@ class Song:
         self.name = None
         self.liked = False
         self.is_intro = is_intro
+        self.from_radio = False
     
     async def _get_info_from_YT(self, keyword, bot, ctx):
         self.ctx = ctx
@@ -85,19 +86,20 @@ class Song:
                 if i.name == self.source.title or i.name == track:
                     self.liked = True
             if track and author and not self.name and not self.artist:
-                try:
-                    self._get_info_from_Spotify(track, author)
-                except Exception:
-                    pass
+                r = RadioEngine()
+                self._get_info_from_Spotify(track, author, r.sp)
             return True
         else:
             return None
 
     def _get_info_from_Spotify(self, name, artist, sp, track=None):
-        if not track:
+        if track is None:
             info = sp.search(q='artist:' + artist + ' track:' +
                                   name, type='track', limit=1)
-            track = info['tracks']['items'][0]
+            try:
+                track = info['tracks']['items'][0]
+            except IndexError:
+                return
         album = Album(track['album'])
         artist_ = Artist(track['artists'][0])
         self.album = album
@@ -108,10 +110,10 @@ class Song:
         self.popularity = track['popularity']
     
     async def refresh_message(self):
-        embed = self.get_embed(True)
+        embed = self.get_embed()
         await self.message.edit(embed=embed)
 
-    def get_embed(self, radio_mode=False):
+    def get_embed(self):
         colors = {True: discord.Color.red(), False: discord.Color.blurple()}
         if self.is_intro:
             embed = (discord.Embed(title='Iosif Radio', 
@@ -131,7 +133,7 @@ class Song:
                 if i.name == title or i.name == track:
                     self.liked = True
             embed = (discord.Embed(title='Now playing:',
-                                   description=title, color=colors[radio_mode])
+                                   description=title, color=colors[self.from_radio])
                      .add_field(name='Author', value=author)
                      .add_field(name='Duration', value=duration)
                      .add_field(name='URL', value=url)
@@ -280,6 +282,7 @@ class VoiceChannel:
             self.voice.stop()
         if first:
             intro = Song(True)
+            intro.from_radio = True
             await intro._get_info_from_YT(INTRO_URL, self.bot, ctx)
             await self.songs.put(intro)
 
@@ -295,6 +298,7 @@ class VoiceChannel:
         for track in recommendations:
             e = await track._get_info_from_YT(track.name + ' ' + track.artist.name, self.bot, ctx)
             if e:
+                track.from_radio = True
                 await self.songs.put(track)
                 self.radio_mode = True
 
@@ -321,7 +325,7 @@ class VoiceChannel:
             self.voice.play(self.current.source, after=self.play_next_song)
 
             self.current.is_old = True
-            embed = self.current.get_embed(self.radio_mode)
+            embed = self.current.get_embed()
             if not self.radio_mode or self.current.is_intro:
                 self.current.message = await self.current.ctx.send(embed=embed)
             else:
