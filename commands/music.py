@@ -14,8 +14,8 @@ from youtube import YTDLSource
 
 from ._all_classes import *
 
-default_message_reactions = ['⏹️', '⏸️', '⏮️', '⏭️']
-pause_message_reactions = ['⏹️', '▶️', '⏮️', '⏭️']
+default_message_reactions = ['⏹️', '⏸️', '⏮️', '⏭️', '👍', '👎']
+pause_message_reactions = ['⏹️', '▶️', '⏮️', '⏭️', '👍', '👎']
 default_radio_message_reactions = ['⏹️', '⏸️', '⏭️', '👍', '👎']
 pause_radio_message_reactions = ['⏹️', '▶️', '⏭️', '👍', '👎']
 
@@ -38,7 +38,10 @@ class Music(commands.Cog):
     async def like_song(self, ctx):
         voice_channel = self.get_voice_channel(ctx)
         current = voice_channel.current
-        current.add_to_db(ctx.guild.id)
+        try:
+            current.add_to_db(ctx.guild.id)
+        except Exception:
+            pass
         current.liked = True
         await current.refresh_message()
         if self.voice_channels[ctx.guild.id].voice.is_playing():
@@ -51,7 +54,10 @@ class Music(commands.Cog):
     async def unlike_song(self, ctx):
         voice_channel = self.get_voice_channel(ctx)
         current = voice_channel.current
-        current.remove_from_db(ctx.guild.id, current.uri)
+        try:
+            current.remove_from_db(ctx.guild.id, current.uri)
+        except Exception:
+            pass
         current.liked = False
         await current.refresh_message()
         if self.voice_channels[ctx.guild.id].voice.is_playing():
