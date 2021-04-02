@@ -69,6 +69,16 @@ class Song:
         self.is_intro = is_intro
         self.from_radio = False
     
+    def check_like(self, server_id):
+        server_id = str(server_id)
+        session = create_session()
+        track = session.query(Track_db).filter_by(server_id=server_id, uri=self.uri).first()
+        if track:
+            self.liked = True
+        else:
+            self.liked = False
+        session.close()
+    
     async def _get_info_from_YT(self, keyword, bot, ctx):
         self.ctx = ctx
         self.source = await YTDLSource.from_url(keyword, loop=bot.loop)
@@ -322,6 +332,8 @@ class VoiceChannel:
             self.current.source.volume = 0.5
             if self.current.is_old:
                 await self.current.refresh(self.bot)
+            print(self.current.uri)
+            self.current.check_like(self._ctx.guild.id)
             self.voice.play(self.current.source, after=self.play_next_song)
 
             self.current.is_old = True
