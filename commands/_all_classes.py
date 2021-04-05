@@ -5,6 +5,8 @@ import discord
 from discord.ext import commands
 import asyncio
 import itertools
+import aiohttp
+import random
 
 from requests.sessions import session
 from youtube import YTDLSource
@@ -13,13 +15,14 @@ from discord.ext.commands.core import command
 from data.db_session import create_session
 from data.__all_models import Track_db
 import spotipy
+import string
 
 
 default_message_reactions = ['⏹️', '⏸️', '⏮️', '⏭️', '👍', '👎']
 pause_message_reactions = ['⏹️', '▶️', '⏮️', '⏭️', '👍', '👎']
 default_radio_message_reactions = ['⏹️', '⏸️', '⏭️', '👍', '👎']
 pause_radio_message_reactions = ['⏹️', '▶️', '⏭️', '👍', '👎']
-INTRO_URL = 'https://youtu.be/91D2V8W8Sy0'
+INTRO_URL = ['https://youtu.be/91D2V8W8Sy0', 'https://youtu.be/-bEzhmi7vOg']
 
 
 
@@ -79,18 +82,43 @@ class Song:
             self.liked = False
         session.close()
     
+    async def _get_info_from_Deezer(self, keyword):
+        # keyword = keyword.lower()
+        # keyword = keyword.replace('(official video)', '')
+        new = ''
+        for i in keyword:
+            if i in string.printable or i == ' ':
+                new += i
+        keyword = new
+        async with aiohttp.ClientSession() as session:
+            async with session.get('https://api.deezer.com/search?q=' + keyword) as response:
+                json = await response.json()
+                # print(json, keyword)
+                data = json['data']
+                if data:
+                    data = data[0]
+                    name = data['title']
+                    artist = data['artist']['name']
+                    return name, artist
+        return None, None
+    
     async def _get_info_from_YT(self, keyword, bot, ctx):
         self.ctx = ctx
+        # print(keyword)
         self.source = await YTDLSource.from_url(keyword, loop=bot.loop)
         if self.source:
-            try:
-                author = self.source.data['artist']
-            except KeyError:
-                author = self.source.data['uploader']
-            try:
-                track = self.source.data['track']
-            except KeyError:
-                track = ''
+            # try:
+            #     author = self.source.data['artist']
+            # except KeyError:
+            #     author = self.source.data['uploader']
+            # try:
+            #     track = self.source.data['track']
+            # except KeyError:
+            #     track = ''
+            author = self.source.data.get('artist', '')
+            track = self.source.data.get('track', '')
+            if not author or not track:
+                track, author = await self._get_info_from_Deezer(self.source.title)
             tracks = get_tracks_from_db(self.ctx.guild.id)
             for i in tracks:
                 if i.name == self.source.title or i.name == track:
@@ -98,6 +126,7 @@ class Song:
             if track and author and not self.name and not self.artist:
                 r = RadioEngine()
                 self._get_info_from_Spotify(track, author, r.sp)
+                # print(self.name, self.artist.name)
             return True
         else:
             return None
@@ -293,7 +322,7 @@ class VoiceChannel:
         if first:
             intro = Song(True)
             intro.from_radio = True
-            await intro._get_info_from_YT(INTRO_URL, self.bot, ctx)
+            await intro._get_info_from_YT(random.choice(INTRO_URL), self.bot, ctx)
             await self.songs.put(intro)
 
     async def load_recommendations(self, ctx: commands.Context):
@@ -332,7 +361,7 @@ class VoiceChannel:
             self.current.source.volume = 0.5
             if self.current.is_old:
                 await self.current.refresh(self.bot)
-            print(self.current.uri)
+            # print(self.current.uri)
             self.current.check_like(self._ctx.guild.id)
             self.voice.play(self.current.source, after=self.play_next_song)
 
