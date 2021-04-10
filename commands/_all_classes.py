@@ -25,7 +25,6 @@ pause_radio_message_reactions = ['⏹️', '▶️', '⏭️', '👍', '👎']
 INTRO_URL = ['https://youtu.be/91D2V8W8Sy0', 'https://youtu.be/-bEzhmi7vOg']
 
 
-
 def get_tracks_from_db(server_id):
     server_id = str(server_id)
     session = create_session()
@@ -40,21 +39,14 @@ class Artist:
         self.uri = info['uri']
         self.name = info['name']
 
-    def __str__(self):
-        return str({'id': self.id, 'uri': self.uri, 'name': self.name})
-
 class Album:
     def __init__(self, info):
         self.id = info['id']
         self.uri = info['uri']
         self.name = info['name']
-        self.image_url = info['images'][0]['url']
+        # self.image_url = info['images'][0]['url']
         self.release_date = info['release_date']
         self.total_tracks = info['total_tracks']
-
-    def __str__(self):
-        return str({'id': self.id, 'uri': self.uri, 'name': self.name, 'image_url': self.image_url,
-                    'release_date': self.release_date, 'total_tracks': self.total_tracks})
 
 class Song:
     def __init__(self, is_intro=False):
@@ -82,9 +74,8 @@ class Song:
             self.liked = False
         session.close()
     
+    # На случай, если испольнитель не считается таковым на YT
     async def _get_info_from_Deezer(self, keyword):
-        # keyword = keyword.lower()
-        # keyword = keyword.replace('(official video)', '')
         new = ''
         for i in keyword:
             if i in string.printable or i == ' ':
@@ -93,8 +84,7 @@ class Song:
         async with aiohttp.ClientSession() as session:
             async with session.get('https://api.deezer.com/search?q=' + keyword) as response:
                 json = await response.json()
-                # print(json, keyword)
-                data = json['data']
+                data = json.get('data', None)
                 if data:
                     data = data[0]
                     name = data['title']
@@ -104,17 +94,8 @@ class Song:
     
     async def _get_info_from_YT(self, keyword, bot, ctx):
         self.ctx = ctx
-        # print(keyword)
         self.source = await YTDLSource.from_url(keyword, loop=bot.loop)
         if self.source:
-            # try:
-            #     author = self.source.data['artist']
-            # except KeyError:
-            #     author = self.source.data['uploader']
-            # try:
-            #     track = self.source.data['track']
-            # except KeyError:
-            #     track = ''
             author = self.source.data.get('artist', '')
             track = self.source.data.get('track', '')
             if not author or not track:
@@ -126,7 +107,6 @@ class Song:
             if track and author and not self.name and not self.artist:
                 r = RadioEngine()
                 self._get_info_from_Spotify(track, author, r.sp)
-                # print(self.name, self.artist.name)
             return True
         else:
             return None
@@ -148,6 +128,7 @@ class Song:
         self.name = track['name']
         self.popularity = track['popularity']
     
+    # Обновление Embed
     async def refresh_message(self):
         embed = self.get_embed()
         await self.message.edit(embed=embed)
@@ -215,6 +196,7 @@ class Song:
         session.commit()
         session.close()
 
+    # обновление source для повторного запуска
     async def refresh(self, bot):
         self.source = await YTDLSource.from_url(self.source.title, loop=bot.loop)
         self.is_old = False
@@ -361,18 +343,20 @@ class VoiceChannel:
             self.current.source.volume = 0.5
             if self.current.is_old:
                 await self.current.refresh(self.bot)
-            # print(self.current.uri)
+
             self.current.check_like(self._ctx.guild.id)
             self.voice.play(self.current.source, after=self.play_next_song)
-
             self.current.is_old = True
             embed = self.current.get_embed()
+
             if not self.radio_mode or self.current.is_intro:
                 self.current.message = await self.current.ctx.send(embed=embed)
             else:
                 await self.current.message.edit(embed=embed)
+
             if not self.current.is_intro and not self.radio_mode:
                 await self.current.update_message_reactions(default_message_reactions)
+
             elif self.radio_mode and not self.current.is_intro:
                 await self.current.update_message_reactions(default_radio_message_reactions)
 
