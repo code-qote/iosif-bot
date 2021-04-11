@@ -7,6 +7,7 @@ import asyncio
 import itertools
 import aiohttp
 import random
+from requests import get
 
 from requests.sessions import session
 from youtube import YTDLSource
@@ -75,21 +76,22 @@ class Song:
         session.close()
     
     # На случай, если испольнитель не считается таковым на YT
-    async def _get_info_from_Deezer(self, keyword):
+    # должна быть async но кончается память
+    def _get_info_from_Deezer(self, keyword):
         new = ''
         for i in keyword:
             if i in string.printable or i == ' ':
                 new += i
         keyword = new
-        async with aiohttp.ClientSession() as session:
-            async with session.get('https://api.deezer.com/search?q=' + keyword) as response:
-                json = await response.json()
-                data = json.get('data', None)
-                if data:
-                    data = data[0]
-                    name = data['title']
-                    artist = data['artist']['name']
-                    return name, artist
+        response = get('https://api.deezer.com/search?q=' + keyword)
+        json = response.json()
+        print('f')
+        data = json.get('data', None)
+        if data:
+            data = data[0]
+            name = data['title']
+            artist = data['artist']['name']
+            return name, artist
         return None, None
     
     async def _get_info_from_YT(self, keyword, bot, ctx):
@@ -99,7 +101,7 @@ class Song:
             author = self.source.data.get('artist', '')
             track = self.source.data.get('track', '')
             if not author or not track:
-                track, author = await self._get_info_from_Deezer(self.source.title)
+                track, author = self._get_info_from_Deezer(self.source.title)
             tracks = get_tracks_from_db(self.ctx.guild.id)
             for i in tracks:
                 if i.name == self.source.title or i.name == track:
