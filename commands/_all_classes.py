@@ -64,6 +64,8 @@ class Song:
         self.liked = False
         self.is_intro = is_intro
         self.from_radio = False
+        self.keyword = None
+        self.is_message_updating = False
     
     def check_like(self, server_id):
         server_id = str(server_id)
@@ -85,7 +87,6 @@ class Song:
         keyword = new
         response = get('https://api.deezer.com/search?q=' + keyword)
         json = response.json()
-        print('f')
         data = json.get('data', None)
         if data:
             data = data[0]
@@ -306,7 +307,8 @@ class VoiceChannel:
         if first:
             intro = Song(True)
             intro.from_radio = True
-            await intro._get_info_from_YT(random.choice(INTRO_URL), self.bot, ctx)
+            intro.keyword = random.choice(INTRO_URL)
+            # await intro._get_info_from_YT(random.choice(INTRO_URL), self.bot, ctx)
             await self.songs.put(intro)
 
     async def load_recommendations(self, ctx: commands.Context):
@@ -319,11 +321,11 @@ class VoiceChannel:
             tracks)
         recommendations = recommendations[:-1]
         for track in recommendations:
-            e = await track._get_info_from_YT(track.name + ' ' + track.artist.name, self.bot, ctx)
-            if e:
-                track.from_radio = True
-                await self.songs.put(track)
-                self.radio_mode = True
+            # e = await track._get_info_from_YT(track.name + ' ' + track.artist.name, self.bot, ctx)
+            track.from_radio = True
+            track.keyword = track.name + ' ' + track.artist.name
+            await self.songs.put(track)
+            self.radio_mode = True
 
     async def audio_player_task(self):
         while True:
@@ -342,9 +344,11 @@ class VoiceChannel:
             if self.radio_mode and not self.current.is_intro:
                 self.current.message = message
 
-            self.current.source.volume = 0.5
             if self.current.is_old:
                 await self.current.refresh(self.bot)
+            else:
+                await self.current._get_info_from_YT(self.current.keyword, self.bot, self._ctx)
+            self.current.source.volume = 0.5
 
             self.current.check_like(self._ctx.guild.id)
             self.voice.play(self.current.source, after=self.play_next_song)
@@ -378,7 +382,7 @@ class VoiceChannel:
 
     async def jump(self, ind):
         if 0 <= ind < len(self.songs.list_to_show):
-            self.songs.clear()
+            self.songs._queue.clear()
             for i in range(ind, len(self.songs.list_to_show)):
                 await self.songs.put(self.songs.list_to_show[i])
             self.voice.stop()
@@ -386,7 +390,7 @@ class VoiceChannel:
     async def back(self):
         ind = self.songs.list_to_show.index(self.current) - 1
         if ind >= 0:
-            self.songs.clear()
+            self.songs._queue.clear()
             for i in range(ind, len(self.songs.list_to_show)):
                 await self.songs.put(self.songs.list_to_show[i])
             self.voice.stop()
