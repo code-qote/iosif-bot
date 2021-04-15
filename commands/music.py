@@ -126,7 +126,8 @@ class Music(commands.Cog):
             if not self.voice_channels[server_id].radio_mode:
                 source = await YTDLSource.from_url(keyword, loop=self.bot.loop)
                 song = Song()
-                await song._get_info_from_YT(keyword, self.bot, ctx)
+                song.keyword = keyword
+                # await song._get_info_from_YT(keyword, self.bot, ctx)
                 await self.voice_channels[server_id].songs.put(song)
                 self.voice_channels[server_id].songs.list_to_show.append(song)
                 await send_success(ctx, 'Added to queue {}'.format(source.title))
