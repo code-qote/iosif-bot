@@ -15,3 +15,4 @@ aiohttp==3.6.3
 Pillow==8.0.0
 spotipy==2.18.0
 dropbox==11.4.1
+urllib3==1.26.4
