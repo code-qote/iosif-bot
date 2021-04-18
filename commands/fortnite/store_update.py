@@ -39,7 +39,8 @@ def check_update_task():
 
                 session = create_session()
                 old_holiday = session.query(Holiday).get(1)
-                session.delete(old_holiday)
+                if old_holiday:
+                    session.delete(old_holiday)
                 holiday = Holiday(name=get_holiday())
                 session.add(holiday)
                 session.commit()
