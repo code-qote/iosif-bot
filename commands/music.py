@@ -13,6 +13,8 @@ from requests.sessions import session
 from youtube import YTDLSource
 
 from ._all_classes import *
+from data.db_session import create_session
+from data.__all_models import Holiday
 
 default_message_reactions = ['⏹️', '⏸️', '⏮️', '⏭️', '👍', '👎']
 pause_message_reactions = ['⏹️', '▶️', '⏮️', '⏭️', '👍', '👎']
@@ -193,3 +195,13 @@ class Music(commands.Cog):
             with io.open('patch-note.txt', 'r', encoding='utf-8') as file:
                 text = file.read()
                 await send_info(ctx, 'Patch Note', text)
+
+    # не относится к music
+    @commands.command(name='holiday')
+    async def _holiday(self, ctx: commands.Context):
+        '''What is holiday today? (Not real)'''
+        async with ctx.typing():
+            session = create_session()
+            holiday = session.query(Holiday).limit(1).first()
+            if holiday:
+                await send_success(ctx, holiday.name)
