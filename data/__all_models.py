@@ -18,3 +18,10 @@ class Track_db(SqlAlchemyBase, SerializerMixin):
     artist = sqlalchemy.Column(sqlalchemy.String(length=100), nullable=False)
     server_id = sqlalchemy.Column(sqlalchemy.String, nullable=False)
 
+class Holiday(SqlAlchemyBase, SerializerMixin):
+    __tablename__ = 'holiday'
+
+    id = sqlalchemy.Column(sqlalchemy.Integer,
+                           primary_key=True, autoincrement=True)
+    name = sqlalchemy.Column(sqlalchemy.String(length=100), nullable=False)
+
