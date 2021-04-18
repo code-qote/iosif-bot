@@ -302,7 +302,8 @@ class VoiceChannel:
     async def load_intro(self, ctx, first=True):
         if (self.voice.is_playing() or self.voice.is_paused()) and first:
             self.songs.clear()
-            await self.current.message.clear_reactions()
+            if self.current:
+                await self.current.message.clear_reactions()
             self.voice.stop()
         if first:
             intro = Song(True)
