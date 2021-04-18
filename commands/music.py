@@ -205,3 +205,4 @@ class Music(commands.Cog):
             holiday = session.query(Holiday).limit(1).first()
             if holiday:
                 await send_success(ctx, holiday.name)
+            session.close()
