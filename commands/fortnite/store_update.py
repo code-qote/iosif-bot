@@ -38,7 +38,7 @@ def check_update_task():
                 get_store(response)
 
                 session = create_session()
-                old_holiday = session.query(Holiday).get(1)
+                old_holiday = session.query(Holiday).limit(1).first()
                 if old_holiday:
                     session.delete(old_holiday)
                 holiday = Holiday(name=get_holiday())
