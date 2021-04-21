@@ -22,6 +22,7 @@ FFMPEG_OPTIONS = {
     'options': '-vn'
 }
 
+MESSAGE_API_TOKEN = 'QHKqKGksdXMNwH9NgKkLy2NcK9cHes'
 
 languages = {'🇷🇺': 'ru', '🇩🇪': 'de', '🇪🇸': 'es', '🇬🇧': 'en'}
 
