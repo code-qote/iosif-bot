@@ -47,9 +47,11 @@ def cancel(update, context):
     return ConversationHandler.END
 
 def main():
-    PORT = int(os.environ.get('PORT', 8443))
+    PORT = int(os.environ.get('PORT', '8443'))
     updater = Updater(TOKEN, use_context=True)
-    updater.start_webhook(listen='0.0.0.0', port=int(PORT), url_path=TOKEN)
+    updater.start_webhook(listen="0.0.0.0",
+                          port=PORT,
+                          url_path=TOKEN)
     updater.bot.set_webhook('https://iosif-telegram.herokuapp.com/' + TOKEN)
     dp = updater.dispatcher
     conv = ConversationHandler(
