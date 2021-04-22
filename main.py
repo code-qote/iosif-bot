@@ -47,7 +47,6 @@ def cancel(update, context):
     return ConversationHandler.END
 
 def main():
-    PORT = int(os.environ.get('PORT', 88))
     updater = Updater(TOKEN, use_context=True)
     updater.start_webhook(listen="0.0.0.0",
                           port=PORT,
