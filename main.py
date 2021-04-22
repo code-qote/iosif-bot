@@ -50,7 +50,8 @@ def main():
     updater = Updater(TOKEN, use_context=True)
     updater.start_webhook(listen="0.0.0.0",
                           port=PORT,
-                          url_path=TOKEN)
+                          url_path=TOKEN, 
+                          webhook_url='https://iosif-telegram.herokuapp.com/' + TOKEN)
     updater.bot.set_webhook('https://iosif-telegram.herokuapp.com/' + TOKEN)
     dp = updater.dispatcher
     conv = ConversationHandler(
