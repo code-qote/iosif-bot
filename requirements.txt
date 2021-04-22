@@ -18,3 +18,4 @@ dropbox==11.4.1
 urllib3==1.26.4
 pymorphy2==0.9.1
 pymorphy2-dicts-ru==2.4.417127.4579844
+newrelic==6.2.0.156
