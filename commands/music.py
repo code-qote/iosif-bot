@@ -16,10 +16,10 @@ from ._all_classes import *
 from data.db_session import create_session
 from data.__all_models import Holiday
 
-default_message_reactions = ['⏹️', '⏸️', '⏮️', '⏭️', '👍', '👎']
-pause_message_reactions = ['⏹️', '▶️', '⏮️', '⏭️', '👍', '👎']
-default_radio_message_reactions = ['⏹️', '⏸️', '⏭️', '👍', '👎']
-pause_radio_message_reactions = ['⏹️', '▶️', '⏭️', '👍', '👎']
+default_message_reactions = ['⏹️', '⏸️', '⏮️', '⏭️', '👍', '👎', '❌']
+pause_message_reactions = ['⏹️', '▶️', '⏮️', '⏭️', '👍', '👎', '❌']
+default_radio_message_reactions = ['⏹️', '⏸️', '⏭️', '👍', '👎', '❌']
+pause_radio_message_reactions = ['⏹️', '▶️', '⏭️', '👍', '👎', '❌']
 
 
 async def send_info(ctx, title, message):

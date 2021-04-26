@@ -1,23 +1,15 @@
-from urllib import request
-import discord
-from discord.ext import commands
-import asyncio
-import itertools
-from discord.ext.commands import bot
-from discord.ext.commands.core import command
-import aiohttp
-import threading
-from .store_update import check_update_task
-from .fort_consts import API_KEY, DROPBOX_TOKEN
-import dropbox
 import os
 
+import aiohttp
+import discord
+import dropbox
+from discord.ext import commands
+
+from .fort_consts import API_KEY, DROPBOX_TOKEN
 
 class Fortnite(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        checking_store_update = threading.Thread(target=check_update_task, daemon=True)
-        checking_store_update.start()
     
     def get_embed(self, stats_type, nickname, picture, wins, kd, win_ratio,
                 matches, kills, time_played, footer):
