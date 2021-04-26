@@ -1,63 +1,18 @@
-import asyncio
-import datetime
 import os
 from codecs import open
 from math import ceil, sqrt
-from random import choice
-from time import sleep, time
+from time import sleep
 
 from requests.sessions import session
 from data.db_session import create_session
 from data.__all_models import Holiday
 
 import dropbox
-import pymorphy2
-import pytz
 from PIL import Image, ImageDraw, ImageFont
 from requests import get
 
 from .fort_consts import *
 
-
-def check_update_task():
-    global holiday
-    last = None
-    while True:
-        time = datetime.datetime.now()
-        timezone = pytz.timezone('Etc/Greenwich')
-        time = time.astimezone(timezone)
-        headers = {'TRN-Api-Key': API_KEY}
-        try:
-            response = eval(
-                get('https://api.fortnitetracker.com/v1/store', headers=headers).content)
-        except Exception:
-            pass
-        if len(response):
-            if response != last:
-                last = response
-                get_store(response)
-
-                session = create_session()
-                old_holiday = session.query(Holiday).limit(1).first()
-                if old_holiday:
-                    session.delete(old_holiday)
-                holiday = Holiday(name=get_holiday())
-                session.add(holiday)
-                session.commit()
-                session.close()
-
-        sleep(60)
-
-# не относится к store_update. Просто лень переносить check_update_task
-def get_holiday():
-    beginnings = ['День независимости', 'Христианский праздник',
-                  'День защитника', 'Международный день', 'День народного']
-    with open('nouns.txt', 'r', encoding='utf-8') as file:
-        nouns = [i.strip('\r\n') for i in file.readlines()]
-    beginning = choice(beginnings)
-    morph = pymorphy2.MorphAnalyzer()
-    noun = morph.parse(choice(nouns))[0].inflect({'gent'}).word
-    return beginning + ' ' + noun
 
 def get_size(images_count):
     s = default_size // ceil(images_count ** 0.5)

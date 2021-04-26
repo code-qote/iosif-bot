@@ -1,28 +1,28 @@
+import asyncio
+import itertools
+import random
+import string
 from random import shuffle
 from time import sleep
 from urllib import request
-import discord
-from discord.ext import commands
-import asyncio
-import itertools
-import aiohttp
-import random
-from requests import get
 
-from requests.sessions import session
-from youtube import YTDLSource
+import aiohttp
+import discord
+import spotipy
+from data.__all_models import Track_db
+from data.db_session import create_session
+from discord.ext import commands
 from discord.ext.commands import bot
 from discord.ext.commands.core import command
-from data.db_session import create_session
-from data.__all_models import Track_db
-import spotipy
-import string
+from requests import get
+from requests.sessions import session
+from sqlalchemy.sql.expression import func
+from youtube import YTDLSource
 
-
-default_message_reactions = ['⏹️', '⏸️', '⏮️', '⏭️', '👍', '👎']
-pause_message_reactions = ['⏹️', '▶️', '⏮️', '⏭️', '👍', '👎']
-default_radio_message_reactions = ['⏹️', '⏸️', '⏭️', '👍', '👎']
-pause_radio_message_reactions = ['⏹️', '▶️', '⏭️', '👍', '👎']
+default_message_reactions = ['⏹️', '⏸️', '⏮️', '⏭️', '👍', '👎', '❌']
+pause_message_reactions = ['⏹️', '▶️', '⏮️', '⏭️', '👍', '👎', '❌']
+default_radio_message_reactions = ['⏹️', '⏸️', '⏭️', '👍', '👎', '❌']
+pause_radio_message_reactions = ['⏹️', '▶️', '⏭️', '👍', '👎', '❌']
 INTRO_URL = ['https://youtu.be/91D2V8W8Sy0', 'https://youtu.be/-bEzhmi7vOg']
 
 
@@ -30,8 +30,9 @@ def get_tracks_from_db(server_id):
     server_id = str(server_id)
     session = create_session()
     tracks = session.query(Track_db).filter_by(server_id=server_id).all()
+    # TODO: проверить
     if not tracks:
-        tracks = session.query(Track_db).limit(5).all()
+        tracks = session.query(Track_db).order_by(func.random().limit(5)).all()
     return tracks
 
 class Artist:
@@ -67,7 +68,7 @@ class Song:
         self.keyword = None
         self.is_message_updating = False
     
-    def check_like(self, server_id):
+    def check_like_with_uri(self, server_id):
         server_id = str(server_id)
         session = create_session()
         track = session.query(Track_db).filter_by(server_id=server_id, uri=self.uri).first()
@@ -78,7 +79,7 @@ class Song:
         session.close()
     
     # На случай, если испольнитель не считается таковым на YT
-    # должна быть async но кончается память
+    # TODO: #27 #26 исправить на async
     def _get_info_from_Deezer(self, keyword):
         new = ''
         for i in keyword:
@@ -103,10 +104,11 @@ class Song:
             track = self.source.data.get('track', '')
             if not author or not track:
                 track, author = self._get_info_from_Deezer(self.source.title)
-            tracks = get_tracks_from_db(self.ctx.guild.id)
-            for i in tracks:
-                if i.name == self.source.title or i.name == track:
-                    self.liked = True
+            self.liked = self.is_liked(self.source.title, track)
+            # tracks = get_tracks_from_db(self.ctx.guild.id)
+            # for i in tracks:
+            #     if i.name == self.source.title or i.name == track:
+            #         self.liked = True
             if track and author and not self.name and not self.artist:
                 r = RadioEngine()
                 self._get_info_from_Spotify(track, author, r.sp)
@@ -143,18 +145,8 @@ class Song:
                                     color=discord.Color.red()).set_footer(text='Made with ❤️'))
             return embed
         if self.source:
-            title = self.source.title
-            author = self.source.data.get('artist', '')
-            track = self.source.data.get('track', '')
-            if not author:
-                author = self.source.data['uploader']
-            duration = self.convert_duration(self.source.data['duration'])
-            url = self.source.data['webpage_url']
-            thumbnail = self.source.data['thumbnails'][0]['url']
-            tracks = get_tracks_from_db(self.ctx.guild.id)
-            for i in tracks:
-                if i.name == title or i.name == track:
-                    self.liked = True
+            title, author, track, duration, url, thumbnail = self._get_info_from_source_data()
+            self.liked = self.is_liked(title, track)
             embed = (discord.Embed(title='Now playing:',
                                    description=title, color=colors[self.from_radio])
                      .add_field(name='Author', value=author)
@@ -167,6 +159,24 @@ class Song:
             else:
                 embed.add_field(name='Liked', value='😐')
             return embed
+
+    def _get_info_from_source_data(self):
+        title = self.source.title
+        author = self.source.data.get('artist', '')
+        track = self.source.data.get('track', '')
+        if not author:
+            author = self.source.data['uploader']
+        duration = self.convert_duration(self.source.data['duration'])
+        url = self.source.data['webpage_url']
+        thumbnail = self.source.data['thumbnails'][0]['url']
+        return title,author,track,duration,url,thumbnail
+
+    def is_liked(self, title, track):
+        tracks = get_tracks_from_db(self.ctx.guild.id)
+        for i in tracks:
+            if i.name == title or i.name == track:
+                return True
+        return False
 
     def convert_duration(self, duration):
         h = duration // 3600
@@ -265,10 +275,16 @@ class RadioEngine:
             song._get_info_from_Spotify(track.name, track.artist, self.sp)
             tracks.append(song)
         seed_tracks = [track.uri for track in tracks]
-        recommendations = []
-        for i in range(0, len(seed_tracks), 5):
-            rec = self.sp.recommendations(seed_tracks=seed_tracks[i:i+5], limit=5)
-            recommendations.append(rec)
+
+        # Существует ограничение в 5 seed треков в spotify, поэтому делим их по 5
+        recommendations = [self.sp.recommendations(seed_tracks=seed_tracks[i:i+5], limit=5) 
+                            for i in range(0, len(seed_tracks), 5)]
+
+        # for i in range(0, len(seed_tracks), 5):
+        #     rec = self.sp.recommendations(
+        #         seed_tracks=seed_tracks[i:i+5], limit=5)
+        #     recommendations.append(rec)
+
         recommendations_new = []
         for recs in recommendations:
             for track in recs['tracks']:
@@ -351,7 +367,7 @@ class VoiceChannel:
                 await self.current._get_info_from_YT(self.current.keyword, self.bot, self._ctx)
             self.current.source.volume = 0.5
 
-            self.current.check_like(self._ctx.guild.id)
+            self.current.check_like_with_uri(self._ctx.guild.id)
             self.voice.play(self.current.source, after=self.play_next_song)
             self.current.is_old = True
             embed = self.current.get_embed()

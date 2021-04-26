@@ -1,9 +1,7 @@
-import asyncio
-import os
+import threading
 
 import discord
-from discord import FFmpegPCMAudio
-from discord.ext import commands, tasks
+from discord.ext import commands
 
 from api import *
 from commands import memes, music
@@ -11,7 +9,7 @@ from commands.fortnite import fortnite
 from consts import *
 from data import db_session
 from web_server import WebServer
-
+from background_task import check_update_task
 
 if __name__ == '__main__':
     bot = commands.Bot(command_prefix='!')
@@ -44,8 +42,16 @@ if __name__ == '__main__':
                 await music_cog.like_song(await bot.get_context(reaction.message))
             elif reaction.emoji == '👎':
                 await music_cog.unlike_song(await bot.get_context(reaction.message))
+            elif reaction.emoji == '❌':
+                await music_cog._leave(await bot.get_context(reaction.message))
             elif reaction.emoji in languages:
                 await memes_cog.translate(await bot.get_context(reaction.message), languages[reaction.emoji])
+    
+    @bot.event
+    async def on_ready():
+        background_update = threading.Thread(
+            target=check_update_task, daemon=True, args=[bot])
+        background_update.start()
     
     # bot.run(TOKEN_TEST)
     bot.run(TOKEN)
