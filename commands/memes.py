@@ -20,6 +20,7 @@ class Memes(commands.Cog):
         async with aiohttp.ClientSession() as session:
             json = {'image_url': self.memes[ctx.message][0], 'language': language}
             async with session.get(API_LINK_IMAGE, json=json) as response:
+                print(response.status)
                 if response.status == 200:
                     meme_text = await response.json()
                     # print(meme_text)
