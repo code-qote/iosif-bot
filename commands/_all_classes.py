@@ -30,7 +30,7 @@ def get_tracks_from_db(server_id):
     server_id = str(server_id)
     session = create_session()
     tracks = session.query(Track_db).filter_by(server_id=server_id).all()
-    # TODO: проверить
+    # TODO: проверить shuffle
     if not tracks:
         tracks = session.query(Track_db).order_by(func.random().limit(5)).all()
     return tracks
@@ -46,7 +46,6 @@ class Album:
         self.id = info['id']
         self.uri = info['uri']
         self.name = info['name']
-        # self.image_url = info['images'][0]['url']
         self.release_date = info['release_date']
         self.total_tracks = info['total_tracks']
 
@@ -79,21 +78,21 @@ class Song:
         session.close()
     
     # На случай, если испольнитель не считается таковым на YT
-    # TODO: #27 #26 исправить на async
-    def _get_info_from_Deezer(self, keyword):
+    async def _get_info_from_Deezer(self, keyword):
         new = ''
         for i in keyword:
             if i in string.printable or i == ' ':
                 new += i
         keyword = new
-        response = get('https://api.deezer.com/search?q=' + keyword)
-        json = response.json()
-        data = json.get('data', None)
-        if data:
-            data = data[0]
-            name = data['title']
-            artist = data['artist']['name']
-            return name, artist
+        async with aiohttp.ClientSession() as session:
+            async with session.get('https://api.deezer.com/search?q=' + keyword) as response:
+                json = await response.json()
+                data = json.get('data', None)
+                if data:
+                    data = data[0]
+                    name = data['title']
+                    artist = data['artist']['name']
+                    return name, artist
         return None, None
     
     async def _get_info_from_YT(self, keyword, bot, ctx):
@@ -102,13 +101,8 @@ class Song:
         if self.source:
             author = self.source.data.get('artist', '')
             track = self.source.data.get('track', '')
-            if not author or not track:
-                track, author = self._get_info_from_Deezer(self.source.title)
+            track, author = await self._get_info_from_Deezer(self.source.title)
             self.liked = self.is_liked(self.source.title, track)
-            # tracks = get_tracks_from_db(self.ctx.guild.id)
-            # for i in tracks:
-            #     if i.name == self.source.title or i.name == track:
-            #         self.liked = True
             if track and author and not self.name and not self.artist:
                 r = RadioEngine()
                 self._get_info_from_Spotify(track, author, r.sp)
@@ -146,7 +140,7 @@ class Song:
             return embed
         if self.source:
             title, author, track, duration, url, thumbnail = self._get_info_from_source_data()
-            self.liked = self.is_liked(title, track)
+            self.liked = self.is_liked(title, track) or self.liked
             embed = (discord.Embed(title='Now playing:',
                                    description=title, color=colors[self.from_radio])
                      .add_field(name='Author', value=author)
@@ -169,7 +163,7 @@ class Song:
         duration = self.convert_duration(self.source.data['duration'])
         url = self.source.data['webpage_url']
         thumbnail = self.source.data['thumbnails'][0]['url']
-        return title,author,track,duration,url,thumbnail
+        return title, author, track, duration, url, thumbnail
 
     def is_liked(self, title, track):
         tracks = get_tracks_from_db(self.ctx.guild.id)
@@ -280,11 +274,6 @@ class RadioEngine:
         recommendations = [self.sp.recommendations(seed_tracks=seed_tracks[i:i+5], limit=5) 
                             for i in range(0, len(seed_tracks), 5)]
 
-        # for i in range(0, len(seed_tracks), 5):
-        #     rec = self.sp.recommendations(
-        #         seed_tracks=seed_tracks[i:i+5], limit=5)
-        #     recommendations.append(rec)
-
         recommendations_new = []
         for recs in recommendations:
             for track in recs['tracks']:
@@ -325,7 +314,6 @@ class VoiceChannel:
             intro = Song(True)
             intro.from_radio = True
             intro.keyword = random.choice(INTRO_URL)
-            # await intro._get_info_from_YT(random.choice(INTRO_URL), self.bot, ctx)
             await self.songs.put(intro)
 
     async def load_recommendations(self, ctx: commands.Context):
@@ -338,7 +326,6 @@ class VoiceChannel:
             tracks)
         recommendations = recommendations[:-1]
         for track in recommendations:
-            # e = await track._get_info_from_YT(track.name + ' ' + track.artist.name, self.bot, ctx)
             track.from_radio = True
             track.keyword = track.name + ' ' + track.artist.name
             await self.songs.put(track)
@@ -365,10 +352,29 @@ class VoiceChannel:
                 await self.current.refresh(self.bot)
             else:
                 await self.current._get_info_from_YT(self.current.keyword, self.bot, self._ctx)
+            
+            while await self.current._get_info_from_YT(self.current.keyword, self.bot, self._ctx) is None:
+                print('f')
+                new = await self.songs.get()
+
+                if self.radio_mode:
+                    message = self.current.message
+
+                self.current = new
+
+                if self.radio_mode and not self.current.is_intro:
+                    self.current.message = message
+
+                if self.current.is_old:
+                    await self.current.refresh(self.bot)
+                else:
+                    await self.current._get_info_from_YT(self.current.keyword, self.bot, self._ctx)
+
             self.current.source.volume = 0.5
 
             self.current.check_like_with_uri(self._ctx.guild.id)
-            self.voice.play(self.current.source, after=self.play_next_song)
+            if self.voice:
+                self.voice.play(self.current.source, after=self.play_next_song)
             self.current.is_old = True
             embed = self.current.get_embed()
 
