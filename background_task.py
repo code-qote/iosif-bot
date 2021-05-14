@@ -10,7 +10,7 @@ from requests import get
 
 from commands.fortnite.fort_consts import *
 from commands.fortnite.store_update import get_store
-from data.__all_models import Holiday
+from data.__all_models import Holiday, Playlist_db
 from data.db_session import create_session
 
 
@@ -30,21 +30,25 @@ def check_update_task(bot):
         if len(response):
             if response != last:
                 last = response
-                get_store(response)
-
-                session = create_session()
-                old_holiday = session.query(Holiday).limit(1).first()
-                if old_holiday:
-                    session.delete(old_holiday)
-                holiday = Holiday(name=get_holiday())
-                session.add(holiday)
-                session.commit()
-                session.close()
+                # get_store(response)
+                update_holiday()
         if bot:
             update_presence = bot.loop.create_task(update_presence_task(bot))
             asyncio.gather(update_presence)
         sleep(60)
 
+def update_holiday():
+    session = create_session()
+    old_holiday = session.query(Holiday).limit(1).first()
+    if old_holiday:
+        session.delete(old_holiday)
+    holiday = Holiday(name=get_holiday())
+    session.add(holiday)
+    session.commit()
+    session.close()
+
+
+# Обновление статуса
 async def update_presence_task(bot):
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f'{len(bot.guilds)} servers!'))
 

@@ -3,19 +3,13 @@ import itertools
 import random
 import string
 from random import shuffle
-from time import sleep
-from urllib import request
 
 import aiohttp
 import discord
 import spotipy
-from data.__all_models import Track_db
+from data.__all_models import Track_db, Playlist_db, Default_track_db
 from data.db_session import create_session
 from discord.ext import commands
-from discord.ext.commands import bot
-from discord.ext.commands.core import command
-from requests import get
-from requests.sessions import session
 from sqlalchemy.sql.expression import func
 from youtube import YTDLSource
 
@@ -23,6 +17,9 @@ default_message_reactions = ['⏹️', '⏸️', '⏮️', '⏭️', '👍', '�
 pause_message_reactions = ['⏹️', '▶️', '⏮️', '⏭️', '👍', '👎', '❌']
 default_radio_message_reactions = ['⏹️', '⏸️', '⏭️', '👍', '👎', '❌']
 pause_radio_message_reactions = ['⏹️', '▶️', '⏭️', '👍', '👎', '❌']
+default_playlist_message_reactions = [
+    '⏹️', '⏸️', '⏮️', '⏭️', '👍', '👎', '📻', '❌']
+pause_playlist_message_reactions = ['⏹️', '▶️', '⏮️', '⏭️', '👍', '👎', '📻', '❌']
 INTRO_URL = ['https://youtu.be/91D2V8W8Sy0', 'https://youtu.be/-bEzhmi7vOg']
 
 
@@ -31,9 +28,100 @@ def get_tracks_from_db(server_id):
     session = create_session()
     tracks = session.query(Track_db).filter_by(server_id=server_id).all()
     # TODO: проверить shuffle
-    if not tracks:
-        tracks = session.query(Track_db).order_by(func.random().limit(5)).all()
+    # if not tracks:
+    #     tracks = session.query(Track_db).limit(5).all()
+    session.close()
     return tracks
+
+def get_default_tracks_from_db():
+    session = create_session()
+    tracks = session.query(Default_track_db).all()
+    session.close()
+    return tracks
+
+def get_playlists_from_db(name):
+    session = create_session()
+    if name is None:
+        playlists = session.query(Playlist_db).all()
+    else:
+        playlists = session.query(Playlist_db).filter(Playlist_db.__ts_vector__.match(
+            name.replace(' ', '%').lower(), postgresql_regconfig='english')).all()
+    session.close()
+    return playlists
+
+class ListMessage:
+
+    def __init__(self, items, object_type, count_on_page=10):
+        self.items = items
+        self.splitted_items = self._split_items(count_on_page)
+        self.count_on_page = count_on_page
+        self.current_page = 0
+        self.message = None
+        self.all_emojis = {0: ['➡️'],
+                           len(self.splitted_items) - 1: ['⬅️']
+                           }
+        self.options = {'playlist': {'title': 'Choose playlist', 'color': discord.Color.green(), 'emojis': ['1️⃣', '2️⃣', '3️⃣', '4️⃣',
+                                                                                                            '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟']},
+                         'songs_list': {'title': 'List', 'color': discord.Color.greyple(), 'emojis': []}}
+        self.object_type = object_type
+        self.is_updating_reactions = False
+    
+    def _split_items(self, count):
+        return [self.items[i:i + count] for i in range(0, len(self.items), count)]
+    
+    def next_page(self):
+        if self.current_page + 1 < len(self.items):
+            self.current_page += 1
+
+    def previous_page(self):
+        if self.current_page - 1 >= 0:
+            self.current_page -= 1
+    
+    async def refresh_page(self):
+        await self.message.clear_reactions()
+        await self.message.edit(embed=self.get_embed())
+        emojis = self.options[self.object_type]['emojis']
+        if len(self.splitted_items) > 1:
+            arrows = self.all_emojis.get(self.current_page, ['⬅️', '➡️'])
+        else:
+            arrows = []
+        self.is_updating_reactions = True
+        for emoji in emojis[:len(self.splitted_items[self.current_page])] + arrows:
+            await self.message.add_reaction(emoji=emoji)
+        self.is_updating_reactions = False
+
+    def _get_description(self):
+        res = ''
+        for i in range(len(self.splitted_items[self.current_page])):
+            if self.object_type == 'playlist':
+                res += f'{i + 1}. {self.splitted_items[self.current_page][i].name}\n'
+            elif self.object_type == 'songs_list':
+                res += f'{self.current_page * self.count_on_page + i + 1}. {self.splitted_items[self.current_page][i]}\n'
+        return res
+
+    def get_embed(self):
+        return (discord.Embed(title=self.options[self.object_type]['title'], description=self._get_description(),
+                              color=self.options[self.object_type]['color']).set_footer(text='Made with ❤️'))
+
+class Playlist:
+    def __init__(self, json):
+        self.name = json['name']
+        r = SpotifyEngine()
+        self.songs = []
+        self.songs_uri = []
+        for track in json['tracks']['items']:
+            song = Song()
+            song._get_info_from_Spotify('', '', r.sp, track=track['track'])
+            song.playlist = self
+            song.from_playlist = True
+            self.songs.append(song)
+            self.songs_uri.append(track['track'])
+
+    def __getitem__(self, item):
+        if isinstance(item, slice):
+            return list(itertools.islice(self.songs, item.start, item.stop, item.step))
+        else:
+            return self.songs[item]
 
 class Artist:
     def __init__(self, info):
@@ -47,7 +135,7 @@ class Album:
         self.uri = info['uri']
         self.name = info['name']
         self.release_date = info['release_date']
-        self.total_tracks = info['total_tracks']
+        self.total_tracks = info.get('total_tracks', 1)
 
 class Song:
     def __init__(self, is_intro=False):
@@ -66,6 +154,9 @@ class Song:
         self.from_radio = False
         self.keyword = None
         self.is_message_updating = False
+        self.playlist = None
+        self.from_playlist = False
+        self.is_updating_reactions = False
     
     def check_like_with_uri(self, server_id):
         server_id = str(server_id)
@@ -104,7 +195,7 @@ class Song:
             track, author = await self._get_info_from_Deezer(self.source.title)
             self.liked = self.is_liked(self.source.title, track)
             if track and author and not self.name and not self.artist:
-                r = RadioEngine()
+                r = SpotifyEngine()
                 self._get_info_from_Spotify(track, author, r.sp)
             return True
         else:
@@ -126,6 +217,7 @@ class Song:
         self.uri = track['uri']
         self.name = track['name']
         self.popularity = track['popularity']
+        self.keyword = self.name + ' ' + self.artist.name
     
     # Обновление Embed
     async def refresh_message(self):
@@ -133,25 +225,34 @@ class Song:
         await self.message.edit(embed=embed)
 
     def get_embed(self):
-        colors = {True: discord.Color.red(), False: discord.Color.blurple()}
+        if self.from_radio:
+            color = discord.Color.red()
+        elif self.from_playlist:
+            color = discord.Color.green()
+        else:
+            color = discord.Color.blurple()
+        
         if self.is_intro:
             embed = (discord.Embed(title='Iosif Radio', 
                                     color=discord.Color.red()).set_footer(text='Made with ❤️'))
             return embed
+        
         if self.source:
             title, author, track, duration, url, thumbnail = self._get_info_from_source_data()
             self.liked = self.is_liked(title, track) or self.liked
             embed = (discord.Embed(title='Now playing:',
-                                   description=title, color=colors[self.from_radio])
+                                   description=title, color=color)
                      .add_field(name='Author', value=author)
                      .add_field(name='Duration', value=duration)
                      .add_field(name='URL', value=url)
                      .set_thumbnail(url=thumbnail)
                      .set_footer(text='Made with ❤️'))
+            
             if self.liked:
                 embed.add_field(name='Liked', value='🙂')
             else:
                 embed.add_field(name='Liked', value='😐')
+            
             return embed
 
     def _get_info_from_source_data(self):
@@ -209,6 +310,7 @@ class Song:
         self.is_old = False
 
     async def update_message_reactions(self, reactions, from_radio=False):
+        self.is_updating_reactions = True
         await self.message.clear_reactions()
         for reaction in reactions:
             if reaction == '👎':
@@ -219,6 +321,9 @@ class Song:
                     await self.message.add_reaction(emoji=reaction)
             else:
                 await self.message.add_reaction(emoji=reaction)
+        self.is_updating_reactions = False
+        # if self.from_playlist:
+        #     await self.message.add_reaction(emoji='📻')
 
 class SongQueue(asyncio.Queue):
 
@@ -244,7 +349,7 @@ class SongQueue(asyncio.Queue):
         del self._queue[self._queue.index(self.list_to_show[i])]
         del self.list_to_show[i]
     
-class RadioEngine:
+class SpotifyEngine:
     client_id = '44897430b3ff40e1b8e5cebbf31b7989'
     client_secret = '97873e4eca264471b40d1f15de216a82'
     username = 'Iosif Radio'
@@ -266,7 +371,11 @@ class RadioEngine:
         tracks = []
         for track in seed_tracks:
             song = Song()
-            song._get_info_from_Spotify(track.name, track.artist, self.sp)
+            if type(track) is dict:
+                r = SpotifyEngine()
+                song._get_info_from_Spotify('', '', r.sp, track=track)
+            else:
+                song._get_info_from_Spotify(track.name, track.artist, self.sp)
             tracks.append(song)
         seed_tracks = [track.uri for track in tracks]
 
@@ -283,6 +392,7 @@ class RadioEngine:
         return recommendations_new
 
 class VoiceChannel:
+
     def __init__(self, bot: commands.Bot, ctx):
         self.bot = bot
         self._ctx = ctx
@@ -293,16 +403,54 @@ class VoiceChannel:
         self.songs = SongQueue()
         self.radio_engine = None
         self.radio_mode = False
+        self.playlist_mode = False
+        self.playlist = None
+        self.playlists_searching_message = None
+        self.songs_list_message = None
 
         self.audio_player = self.bot.loop.create_task(self.audio_player_task())
         asyncio.gather(self.audio_player)
 
     def __del__(self):
         self.audio_player.cancel()
-
-    async def radio(self, ctx, first=True):
+    
+    async def play_playlist(self, number):
+        self.songs.clear()
+        r = SpotifyEngine()
+        playlist = Playlist(r.sp.playlist(
+            self.playlists_searching_message.splitted_items[self.playlists_searching_message.current_page][number].uri))
+        for song in playlist.songs:            
+            await self.songs.put(song)
+            self.songs.list_to_show.append(song)
+        if self.current:
+            await self.current.message.clear_reactions()
+        await self.playlists_searching_message.message.clear_reactions()
+        self.voice.stop()
+        self.playlist_mode = True
+    
+    async def send_songs_list(self, songs):
+        if self.songs_list_message:
+            await self.songs_list_message.message.clear_reactions()
+        self.songs_list_message = ListMessage(songs, 'songs_list')
+        self.songs_list_message.message = await self._ctx.send(embed=self.songs_list_message.get_embed())
+        await self.songs_list_message.refresh_page()
+    
+    async def search_playlists(self, name=None):
+        playlists = get_playlists_from_db(name)
+        if self.playlists_searching_message:
+            await self.playlists_searching_message.message.clear_reactions()
+        self.playlists_searching_message = ListMessage(playlists, 'playlist')
+        self.playlists_searching_message.message = await self._ctx.send(embed=self.playlists_searching_message.get_embed())
+        await self.playlists_searching_message.refresh_page()
+        
+    async def radio(self, ctx, first=True, from_playlist=False):
+        if from_playlist:
+            tracks = self.current.playlist.songs_uri
+            self.playlist_mode = False
+        else:
+            tracks = []
         await self.load_intro(ctx, first)
-        await self.load_recommendations(ctx)
+        await self.load_recommendations(ctx, tracks)
 
     async def load_intro(self, ctx, first=True):
         if (self.voice.is_playing() or self.voice.is_paused()) and first:
@@ -316,12 +464,17 @@ class VoiceChannel:
             intro.keyword = random.choice(INTRO_URL)
             await self.songs.put(intro)
 
-    async def load_recommendations(self, ctx: commands.Context):
+    async def load_recommendations(self, ctx: commands.Context, tracks):
         async with ctx.typing():
             await asyncio.sleep(3)
-        tracks = get_tracks_from_db(ctx.guild.id)
+
+        if not tracks:
+            tracks = get_tracks_from_db(ctx.guild.id)
+            if not tracks:
+                tracks = get_default_tracks_from_db()
+
         shuffle(tracks)
-        self.radio_engine = RadioEngine()
+        self.radio_engine = SpotifyEngine()
         recommendations = self.radio_engine.get_recommendation(
             tracks)
         recommendations = recommendations[:-1]
@@ -340,35 +493,43 @@ class VoiceChannel:
 
             new = await self.songs.get()
 
-            if self.radio_mode:
-                message = self.current.message
+            crashed = True
 
-            self.current = new
+            while crashed:
+                try:
+                    if self.radio_mode:
+                        message = self.current.message
 
-            if self.radio_mode and not self.current.is_intro:
-                self.current.message = message
+                    self.current = new
 
-            if self.current.is_old:
-                await self.current.refresh(self.bot)
-            else:
-                await self.current._get_info_from_YT(self.current.keyword, self.bot, self._ctx)
-            
-            while await self.current._get_info_from_YT(self.current.keyword, self.bot, self._ctx) is None:
-                print('f')
-                new = await self.songs.get()
+                    if self.radio_mode and not self.current.is_intro:
+                        self.current.message = message
 
-                if self.radio_mode:
-                    message = self.current.message
-
-                self.current = new
-
-                if self.radio_mode and not self.current.is_intro:
-                    self.current.message = message
-
-                if self.current.is_old:
-                    await self.current.refresh(self.bot)
+                    if self.current.is_old:
+                        await self.current.refresh(self.bot)
+                    else:
+                        await self.current._get_info_from_YT(self.current.keyword, self.bot, self._ctx)
+                except Exception:
+                    pass
                 else:
-                    await self.current._get_info_from_YT(self.current.keyword, self.bot, self._ctx)
+                    crashed = False
+            
+            # while await self.current._get_info_from_YT(self.current.keyword, self.bot, self._ctx) is None:
+            #     print('f')
+            #     new = await self.songs.get()
+
+            #     if self.radio_mode:
+            #         message = self.current.message
+
+            #     self.current = new
+
+            #     if self.radio_mode and not self.current.is_intro:
+            #         self.current.message = message
+
+            #     if self.current.is_old:
+            #         await self.current.refresh(self.bot)
+            #     else:
+            #         await self.current._get_info_from_YT(self.current.keyword, self.bot, self._ctx)
 
             self.current.source.volume = 0.5
 
@@ -382,8 +543,11 @@ class VoiceChannel:
                 self.current.message = await self.current.ctx.send(embed=embed)
             else:
                 await self.current.message.edit(embed=embed)
+            
+            if self.playlist_mode:
+                await self.current.update_message_reactions(default_playlist_message_reactions)
 
-            if not self.current.is_intro and not self.radio_mode:
+            if not self.current.is_intro and not self.radio_mode and not self.playlist_mode:
                 await self.current.update_message_reactions(default_message_reactions)
 
             elif self.radio_mode and not self.current.is_intro:
