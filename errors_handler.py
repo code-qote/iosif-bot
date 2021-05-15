@@ -13,14 +13,15 @@ async def send_error(ctx, message):
 async def send_success(ctx, message):
     await ctx.send(embed=discord.Embed(title=message, color=discord.Color.green()))
 
+
 class CommandErrorHandler(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-    
+
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
-        
+
         if hasattr(ctx.command, 'on_error'):
             return
 
@@ -35,10 +36,10 @@ class CommandErrorHandler(commands.Cog):
 
         if isinstance(error, ignored):
             return
-        
+
         if isinstance(error, commands.ArgumentParsingError):
             await send_error(ctx, 'You did not pass any arguments.')
         elif isinstance(error, commands.ChannelNotFound):
             await send_error(ctx, 'Join any voice channel.')
         elif isinstance(error, commands.MessageNotFound):
-            pass 
+            pass

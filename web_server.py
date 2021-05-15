@@ -19,7 +19,7 @@ class WebServer(commands.Cog):
                                   color=discord.Color.red()).set_footer(text='From Iosif Team ❤️')
             for guild in bot.guilds:
                 await guild.text_channels[0].send(embed=embed)
-        
+
         @routes.get('/')
         async def index(request):
             return web.Response(status=200)
