@@ -6,15 +6,17 @@ from sqlalchemy_serializer import SerializerMixin
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects import sqlite, postgresql
 
+
 def create_tsvector(*args):
     exp = args[0]
     for e in args[1:]:
         exp += ' ' + e
     return sqlalchemy.func.to_tsvector('english', exp)
 
+
 class Track_db(SqlAlchemyBase, SerializerMixin):
     __tablename__ = 'tracks'
-    
+
     id = sqlalchemy.Column(sqlalchemy.Integer,
                            primary_key=True, autoincrement=True)
     spotify_id = sqlalchemy.Column(
@@ -33,12 +35,14 @@ class Default_track_db(SqlAlchemyBase, SerializerMixin):
     name = sqlalchemy.Column(sqlalchemy.String(length=100), nullable=False)
     artist = sqlalchemy.Column(sqlalchemy.String(length=100), nullable=False)
 
+
 class Holiday(SqlAlchemyBase, SerializerMixin):
     __tablename__ = 'holiday'
 
     id = sqlalchemy.Column(sqlalchemy.Integer,
                            primary_key=True, autoincrement=True)
     name = sqlalchemy.Column(sqlalchemy.String(length=100), nullable=False)
+
 
 class Playlist_db(SqlAlchemyBase, SerializerMixin):
     __tablename__ = 'playlists'
@@ -50,7 +54,8 @@ class Playlist_db(SqlAlchemyBase, SerializerMixin):
     to_search = sqlalchemy.Column(sqlalchemy.String, nullable=False)
 
     __ts_vector__ = create_tsvector(
-        sqlalchemy.cast(sqlalchemy.func.coalesce(to_search, ''), postgresql.TEXT)
+        sqlalchemy.cast(sqlalchemy.func.coalesce(
+            to_search, ''), postgresql.TEXT)
     )
 
     __table_args__ = tuple([(

@@ -21,33 +21,36 @@ default_message_reactions = ['⏹️', '⏸️', '⏮️', '⏭️', '👍', '�
 pause_message_reactions = ['⏹️', '▶️', '⏮️', '⏭️', '👍', '👎', '❌']
 default_radio_message_reactions = ['⏹️', '⏸️', '⏭️', '👍', '👎', '❌']
 pause_radio_message_reactions = ['⏹️', '▶️', '⏭️', '👍', '👎', '❌']
-default_playlist_message_reactions = ['⏹️', '⏸️', '⏮️', '⏭️', '👍', '👎', '📻', '❌']
+default_playlist_message_reactions = [
+    '⏹️', '⏸️', '⏮️', '⏭️', '👍', '👎', '📻', '❌']
 pause_playlist_message_reactions = ['⏹️', '▶️', '⏮️', '⏭️', '👍', '👎', '📻', '❌']
 
 
 async def send_info(ctx, title, message):
     await ctx.send(embed=discord.Embed(title=title, description=message, color=discord.Color.greyple()))
 
+
 async def send_error(ctx, message):
     await ctx.send(embed=discord.Embed(title=message, color=discord.Color.red()))
+
 
 async def send_success(ctx, message):
     await ctx.send(embed=discord.Embed(title=message, color=discord.Color.green()))
 
 
 class Music(commands.Cog):
-    
+
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.voice_channels = dict()
-    
+
     async def _play_playlist(self, ctx, number):
         server_id = ctx.guild.id
         if self.voice_channels[server_id].playlists_searching_message:
             if not self.voice_channels[server_id].playlists_searching_message.is_updating_reactions:
                 async with ctx.typing():
                     await self.voice_channels[server_id].play_playlist(number)
-        
+
     async def like_song(self, ctx):
         voice_channel = self.get_voice_channel(ctx)
         current = voice_channel.current
@@ -62,13 +65,13 @@ class Music(commands.Cog):
 
                 if self.voice_channels[ctx.guild.id].current.from_radio:
                     reactions = {'default': default_radio_message_reactions,
-                                'pause': pause_radio_message_reactions}
+                                 'pause': pause_radio_message_reactions}
                 elif self.voice_channels[ctx.guild.id].current.from_playlist:
                     reactions = {'default': default_playlist_message_reactions,
-                                'pause': pause_playlist_message_reactions}
+                                 'pause': pause_playlist_message_reactions}
                 else:
                     reactions = {'default': default_message_reactions,
-                                'pause': pause_message_reactions}
+                                 'pause': pause_message_reactions}
 
                 if self.voice_channels[ctx.guild.id].voice.is_playing():
                     await self.voice_channels[ctx.guild.id].current.update_message_reactions(
@@ -76,7 +79,7 @@ class Music(commands.Cog):
                 elif self.voice_channels[ctx.guild.id].voice.is_paused():
                     await self.voice_channels[ctx.guild.id].current.update_message_reactions(
                         reactions['pause'])
-    
+
     async def unlike_song(self, ctx):
         voice_channel = self.get_voice_channel(ctx)
         current = voice_channel.current
@@ -91,13 +94,13 @@ class Music(commands.Cog):
 
                 if self.voice_channels[ctx.guild.id].current.from_radio:
                     reactions = {'default': default_radio_message_reactions,
-                                'pause': pause_radio_message_reactions}
+                                 'pause': pause_radio_message_reactions}
                 elif self.voice_channels[ctx.guild.id].current.from_playlist:
                     reactions = {'default': default_playlist_message_reactions,
-                                'pause': pause_playlist_message_reactions}
+                                 'pause': pause_playlist_message_reactions}
                 else:
                     reactions = {'default': default_message_reactions,
-                                'pause': pause_message_reactions}
+                                 'pause': pause_message_reactions}
 
                 if self.voice_channels[ctx.guild.id].voice.is_playing():
                     await self.voice_channels[ctx.guild.id].current.update_message_reactions(
@@ -105,34 +108,36 @@ class Music(commands.Cog):
                 elif self.voice_channels[ctx.guild.id].voice.is_paused():
                     await self.voice_channels[ctx.guild.id].current.update_message_reactions(
                         reactions['pause'])
-    
-    def get_voice_channel(self, ctx): 
+
+    def get_voice_channel(self, ctx):
         server_id = ctx.guild.id
         state = self.voice_channels.get(server_id)
         if not state:
             state = VoiceChannel(self.bot, ctx)
             self.voice_channels[server_id] = state
         return state
-    
+
     async def _next_playlist_page(self, ctx: commands.Context, message: discord.Message):
         server_id = ctx.guild.id
         if self.voice_channels[server_id].playlists_searching_message or self.voice_channels[server_id].songs_list_message:
             if message == self.voice_channels[server_id].playlists_searching_message.message:
                 if not self.voice_channels[server_id].playlists_searching_message.is_updating_reactions:
-                    self.voice_channels[server_id].playlists_searching_message.next_page()
+                    self.voice_channels[server_id].playlists_searching_message.next_page(
+                    )
                     await self.voice_channels[server_id].playlists_searching_message.refresh_page()
             else:
                 if not self.voice_channels[server_id].songs_list_message.is_updating_reactions:
                     self.voice_channels[server_id].songs_list_message.next_page(
                     )
                     await self.voice_channels[server_id].songs_list_message.refresh_page()
-        
+
     async def _previous_playlist_page(self, ctx: commands.Context, message: discord.Message):
         server_id = ctx.guild.id
         if self.voice_channels[server_id].playlists_searching_message or self.voice_channels[server_id].songs_list_message:
             if message == self.voice_channels[server_id].playlists_searching_message.message:
                 if not self.voice_channels[server_id].playlists_searching_message.is_updating_reactions:
-                    self.voice_channels[server_id].playlists_searching_message.previous_page()
+                    self.voice_channels[server_id].playlists_searching_message.previous_page(
+                    )
                     await self.voice_channels[server_id].playlists_searching_message.refresh_page()
             else:
                 if not self.voice_channels[server_id].songs_list_message.is_updating_reactions:
@@ -140,18 +145,17 @@ class Music(commands.Cog):
                     )
                     await self.voice_channels[server_id].songs_list_message.refresh_page()
 
-    
     @commands.command(name='playlist')
     async def _playlist(self, ctx: commands.Context, *, keyword):
         '''!playlist [name of playlist]. Searching playlist'''
         server_id = ctx.guild.id
         await self.voice_channels[server_id].search_playlists(keyword)
-    
+
     @commands.command(name='all_playlists')
     async def _all_playlists(self, ctx: commands.Context):
         server_id = ctx.guild.id
         await self.voice_channels[server_id].search_playlists()
-    
+
     @commands.command(name='join')
     async def _join(self, ctx: commands.Context, ctx_channel=None):
         '''Join Iosif to your voice channel'''
@@ -162,7 +166,7 @@ class Music(commands.Cog):
         server_id = ctx.guild.id
         self.voice_channels[server_id] = self.get_voice_channel(ctx)
         self.voice_channels[server_id].voice = await channel.connect()
-    
+
     @commands.command(name='leave')
     async def _leave(self, ctx: commands.Context):
         '''Leave Iosif alone'''
@@ -170,7 +174,7 @@ class Music(commands.Cog):
         if self.voice_channels[server_id].current:
             if not self.voice_channels[server_id].current.is_updating_reactions:
                 await self.voice_channels[ctx.guild.id].leave()
-    
+
     @commands.command(name='skip')
     async def _skip(self, ctx: commands.Context):
         '''Skip a song'''
@@ -183,7 +187,7 @@ class Music(commands.Cog):
                             await self.voice_channels[ctx.guild.id].skip()
                     except:
                         pass
-    
+
     @commands.command(name='back')
     async def _back(self, ctx: commands.Context):
         '''Go back'''
@@ -196,7 +200,7 @@ class Music(commands.Cog):
                             await self.voice_channels[ctx.guild.id].back()
                     except:
                         pass
-    
+
     @commands.command(name='jump')
     async def _jump(self, ctx: commands.Context, i):
         '''Jump to song'''
@@ -205,7 +209,7 @@ class Music(commands.Cog):
                 await self.voice_channels[ctx.guild.id].jump(int(i) - 1)
         except:
             pass
-    
+
     @commands.command(name='play')
     async def _play(self, ctx: commands.Context, *, keyword):
         '''Hey, Iosif. Light up the dance floor!'''
@@ -223,7 +227,7 @@ class Music(commands.Cog):
                 await send_error(ctx, 'You must stop radio at first!')
             else:
                 await send_error(ctx, 'You must stop playling playlist at first!')
-    
+
     # @commands.command(name='remove')
     # async def _remove(self, ctx: commands.Context, i):
     #     self.voice_channels[ctx.guild.id].remove(i - 1)
@@ -232,7 +236,7 @@ class Music(commands.Cog):
     async def _radio(self, ctx: commands.Context):
         '''Turn on the radio'''
         await self.voice_channels[ctx.guild.id].radio(ctx)
-    
+
     async def _radio_from_playlist(self, ctx: commands.Context):
         server_id = ctx.guild.id
         if self.voice_channels[server_id].current:
@@ -251,7 +255,7 @@ class Music(commands.Cog):
                 self.voice_channels[ctx.guild.id].songs.clear()
                 await self.voice_channels[ctx.guild.id].current.message.clear_reactions()
                 self.voice_channels[ctx.guild.id].voice.stop()
-    
+
     @commands.command(name='pause')
     async def _pause(self, ctx: commands.Context):
         '''Wait please'''
@@ -265,7 +269,7 @@ class Music(commands.Cog):
                 else:
                     await self.voice_channels[ctx.guild.id].current.update_message_reactions(
                         pause_radio_message_reactions)
-    
+
     @commands.command(name='resume')
     async def _resume(self, ctx: commands.Context):
         '''Yeah, go on'''
@@ -279,7 +283,7 @@ class Music(commands.Cog):
                 else:
                     await self.voice_channels[ctx.guild.id].current.update_message_reactions(
                         default_radio_message_reactions)
-    
+
     @commands.command(name='list')
     async def _list(self, ctx: commands.Context):
         '''Show list of the next songs'''
@@ -294,7 +298,7 @@ class Music(commands.Cog):
                 await self.voice_channels[ctx.guild.id].send_songs_list(res)
             else:
                 await send_info(ctx, 'List', 'The queue is empty.')
-    
+
     @commands.command(name='update')
     async def _update(self, ctx: commands.Context):
         '''Get information about last update'''
