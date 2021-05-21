@@ -37,6 +37,11 @@ async def send_error(ctx, message):
 async def send_success(ctx, message):
     await ctx.send(embed=discord.Embed(title=message, color=discord.Color.green()))
 
+def check_blocking(func):
+    async def wrapper(*args, **kwargs):
+        if func.__name__ not in args[0].blocked_commands:
+            return await func(*args, **kwargs)
+    return wrapper
 
 class Music(commands.Cog):
 
@@ -44,6 +49,8 @@ class Music(commands.Cog):
         self.bot = bot
         self.voice_channels = dict()
 
+        self.blocked_commands = []
+    
     async def _play_playlist(self, ctx, number):
         server_id = ctx.guild.id
         if self.voice_channels[server_id].playlists_searching_message:
@@ -146,17 +153,20 @@ class Music(commands.Cog):
                     await self.voice_channels[server_id].songs_list_message.refresh_page()
 
     @commands.command(name='playlist')
+    @check_blocking
     async def _playlist(self, ctx: commands.Context, *, keyword):
         '''!playlist [name of playlist]. Searching playlist'''
         server_id = ctx.guild.id
         await self.voice_channels[server_id].search_playlists(keyword)
 
     @commands.command(name='all_playlists')
+    @check_blocking
     async def _all_playlists(self, ctx: commands.Context):
         server_id = ctx.guild.id
         await self.voice_channels[server_id].search_playlists()
 
     @commands.command(name='join')
+    @check_blocking
     async def _join(self, ctx: commands.Context, ctx_channel=None):
         '''Join Iosif to your voice channel'''
         try:
@@ -168,6 +178,7 @@ class Music(commands.Cog):
         self.voice_channels[server_id].voice = await channel.connect()
 
     @commands.command(name='leave')
+    @check_blocking
     async def _leave(self, ctx: commands.Context):
         '''Leave Iosif alone'''
         server_id = ctx.guild.id
@@ -176,6 +187,7 @@ class Music(commands.Cog):
                 await self.voice_channels[ctx.guild.id].leave()
 
     @commands.command(name='skip')
+    @check_blocking
     async def _skip(self, ctx: commands.Context):
         '''Skip a song'''
         server_id = ctx.guild.id
@@ -189,6 +201,7 @@ class Music(commands.Cog):
                         pass
 
     @commands.command(name='back')
+    @check_blocking
     async def _back(self, ctx: commands.Context):
         '''Go back'''
         server_id = ctx.guild.id
@@ -202,6 +215,7 @@ class Music(commands.Cog):
                         pass
 
     @commands.command(name='jump')
+    @check_blocking
     async def _jump(self, ctx: commands.Context, i):
         '''Jump to song'''
         try:
@@ -211,6 +225,7 @@ class Music(commands.Cog):
             pass
 
     @commands.command(name='play')
+    @check_blocking
     async def _play(self, ctx: commands.Context, *, keyword):
         '''Hey, Iosif. Light up the dance floor!'''
         async with ctx.typing():
@@ -233,6 +248,7 @@ class Music(commands.Cog):
     #     self.voice_channels[ctx.guild.id].remove(i - 1)
 
     @commands.command(name='radio')
+    @check_blocking
     async def _radio(self, ctx: commands.Context):
         '''Turn on the radio'''
         await self.voice_channels[ctx.guild.id].radio(ctx)
@@ -244,6 +260,7 @@ class Music(commands.Cog):
                 await self.voice_channels[ctx.guild.id].radio(ctx, from_playlist=True)
 
     @commands.command(name='stop')
+    @check_blocking
     async def _stop(self, ctx: commands.Context):
         '''Have a rest'''
         server_id = ctx.guild.id
@@ -257,6 +274,7 @@ class Music(commands.Cog):
                 self.voice_channels[ctx.guild.id].voice.stop()
 
     @commands.command(name='pause')
+    @check_blocking
     async def _pause(self, ctx: commands.Context):
         '''Wait please'''
         server_id = ctx.guild.id
@@ -271,6 +289,7 @@ class Music(commands.Cog):
                         pause_radio_message_reactions)
 
     @commands.command(name='resume')
+    @check_blocking
     async def _resume(self, ctx: commands.Context):
         '''Yeah, go on'''
         server_id = ctx.guild.id
@@ -285,6 +304,7 @@ class Music(commands.Cog):
                         default_radio_message_reactions)
 
     @commands.command(name='list')
+    @check_blocking
     async def _list(self, ctx: commands.Context):
         '''Show list of the next songs'''
         async with ctx.typing():
@@ -300,6 +320,7 @@ class Music(commands.Cog):
                 await send_info(ctx, 'List', 'The queue is empty.')
 
     @commands.command(name='update')
+    @check_blocking
     async def _update(self, ctx: commands.Context):
         '''Get information about last update'''
         async with ctx.typing():
@@ -309,6 +330,7 @@ class Music(commands.Cog):
 
     # не относится к music
     @commands.command(name='holiday')
+    @check_blocking
     async def _holiday(self, ctx: commands.Context):
         '''What is holiday today? (Not real)'''
         async with ctx.typing():
