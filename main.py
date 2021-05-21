@@ -1,4 +1,4 @@
-from requests import post
+from requests import post, get
 from telegram.ext import Updater, MessageHandler, Filters, CallbackContext
 from telegram.ext import CallbackContext, CommandHandler, CallbackQueryHandler, ConversationHandler
 from telegram.ext.dispatcher import run_async
@@ -7,6 +7,7 @@ from io import BytesIO
 from consts import *
 import logging
 import os
+from time import sleep
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -46,11 +47,57 @@ def cancel(update, context):
     update.message.reply_text('Ок, передумали получается')
     return ConversationHandler.END
 
+def get_commands():
+    json = {'token': MESSAGE_API_TOKEN}
+    commands = get('https://iosif.herokuapp.com/commands', json=json)
+    # commands = get('http://127.0.0.1:5000/commands', json=json)
+    if commands.status_code == 200:
+        commands = commands.json()
+        print(commands)
+        buttons = []
+        for i in commands['commands']:
+            row = [InlineKeyboardButton(i, callback_data='_')]
+            if i in commands['blocked_commands']:
+                print('f')
+                row.append(InlineKeyboardButton('Включить', callback_data=f'c_{i}_on'))
+            else:
+                row.append(InlineKeyboardButton('Отключить', callback_data=f'c_{i}_off'))
+            buttons.append(row)
+        keyboard = InlineKeyboardMarkup(buttons)
+        return keyboard
+    return None
+
+def commands(update, context):
+    keyboard = get_commands()
+    if keyboard:
+        update.message.reply_text('Команды', reply_markup=keyboard)
+    else:
+        update.message.reply_text('Произошла ошибка')
+
+def on_pressed_button(update, context):
+    query = update.callback_query
+    query.answer()
+    data = query.data
+    if data[0] == 'c':
+        data = data.split('_')
+        command, action = '_' + data[1], data[2]
+        print(command)
+        json = {'token': MESSAGE_API_TOKEN, 'message': command}
+        if action == 'off':
+            post('https://iosif.herokuapp.com/block_command', json=json)
+            # post('http://127.0.0.1:5000/block_command', json=json)
+        elif action == 'on':
+            post('https://iosif.herokuapp.com/unblock_command', json=json)
+            # a = post('http://127.0.0.1:5000/unblock_command', json=json)
+        keyboard = get_commands()
+        query.edit_message_reply_markup(reply_markup=keyboard)
+
+
 def main():
     updater = Updater(TOKEN, use_context=True)
-    # updater.start_webhook(listen='0.0.0.0', port=PORT, url_path=TOKEN)
-    # updater.bot.set_webhook(
-    #     'https://https://iosif-telegram.herokuapp.com/' + TOKEN)
+    updater.start_webhook(listen='0.0.0.0', port=PORT, url_path=TOKEN)
+    updater.bot.set_webhook(
+        'https://https://iosif-telegram.herokuapp.com/' + TOKEN)
     dp = updater.dispatcher
     conv = ConversationHandler(
         entry_points=[CommandHandler('message', message_start)],
@@ -59,6 +106,8 @@ def main():
     )
 
     dp.add_handler(CommandHandler('start', start))
+    dp.add_handler(CommandHandler('commands', commands))
+    dp.add_handler(CallbackQueryHandler(on_pressed_button))
     dp.add_handler(conv)
     updater.start_polling()
 
