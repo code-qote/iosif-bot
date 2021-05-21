@@ -95,9 +95,9 @@ def on_pressed_button(update, context):
 
 def main():
     updater = Updater(TOKEN, use_context=True)
-    updater.start_webhook(listen='0.0.0.0', port=PORT, url_path=TOKEN)
-    updater.bot.set_webhook(
-        'https://https://iosif-telegram.herokuapp.com/' + TOKEN)
+    # updater.start_webhook(listen='0.0.0.0', port=PORT, url_path=TOKEN)
+    # updater.bot.set_webhook(
+    #     'https://https://iosif-telegram.herokuapp.com/' + TOKEN)
     dp = updater.dispatcher
     conv = ConversationHandler(
         entry_points=[CommandHandler('message', message_start)],
