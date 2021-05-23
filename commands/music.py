@@ -181,6 +181,7 @@ class Music(commands.Cog):
     #@check_blocking
     async def _leave(self, ctx: commands.Context):
         '''Leave Iosif alone'''
+        await self._stop(ctx)
         server_id = ctx.guild.id
         if self.voice_channels[server_id].current:
             if not self.voice_channels[server_id].current.is_updating_reactions:
