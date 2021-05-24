@@ -14,8 +14,8 @@ from errors_handler import CommandErrorHandler
 
 if __name__ == '__main__':
     bot = commands.Bot(command_prefix='!')
-    # db_session.global_init('data/db.db')
-    db_session.global_init()
+    db_session.global_init('data/db.db')
+    # db_session.global_init()
 
     music_cog = music.Music(bot)
     error_cog = CommandErrorHandler(bot)
@@ -65,5 +65,5 @@ if __name__ == '__main__':
             target=check_update_task, daemon=True, args=[bot])
         background_update.start()
 
-    bot.run(TOKEN_TEST)
-    # bot.run(TOKEN)
+    # bot.run(TOKEN_TEST)
+    bot.run(TOKEN)
