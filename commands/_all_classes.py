@@ -502,6 +502,8 @@ class VoiceChannel:
 
             new = await self.songs.get()
 
+            # достаем новую песню до тех пор, пока не запустится
+
             crashed = True
 
             while crashed:
@@ -519,7 +521,10 @@ class VoiceChannel:
                     else:
                         await self.current._get_info_from_YT(self.current.keyword, self.bot, self._ctx)
                 except Exception:
-                    pass
+                    if self.songs:
+                        new = await self.songs.get()
+                    else:
+                        crashed = False
                 else:
                     crashed = False
 

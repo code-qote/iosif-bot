@@ -28,7 +28,6 @@ if __name__ == '__main__':
     # bot.add_cog(fortnite_cog)
     bot.add_cog(web_server_cog)
 
-
     @bot.event
     async def on_reaction_add(reaction: discord.Reaction, user):
         if user != bot.user:
@@ -53,18 +52,18 @@ if __name__ == '__main__':
             elif reaction.emoji == '➡️':
                 await music_cog._next_playlist_page(await bot.get_context(reaction.message), reaction.message)
             # elif reaction.emoji in languages:
-            #     await memes_cog.translate(await bot.get_context(reaction.message), languages[reaction.emoji])
+            # await memes_cog.translate(await
+            # bot.get_context(reaction.message), languages[reaction.emoji])
             elif reaction.emoji in digits:
                 await music_cog._play_playlist(await bot.get_context(reaction.message), digits[reaction.emoji])
             elif reaction.emoji == '📻':
                 await music_cog._radio_from_playlist(await bot.get_context(reaction.message))
-                
+
     @bot.event
     async def on_ready():
         background_update = threading.Thread(
             target=check_update_task, daemon=True, args=[bot])
         background_update.start()
-    
-    
-    # bot.run(TOKEN_TEST)
-    bot.run(TOKEN)
+
+    bot.run(TOKEN_TEST)
+    # bot.run(TOKEN)

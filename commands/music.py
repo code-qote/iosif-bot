@@ -127,6 +127,7 @@ class Music(commands.Cog):
     async def _next_playlist_page(self, ctx: commands.Context, message: discord.Message):
         server_id = ctx.guild.id
         if self.voice_channels[server_id].playlists_searching_message or self.voice_channels[server_id].songs_list_message:
+            print(message, self.voice_channels[server_id].playlists_searching_message.message)
             if message == self.voice_channels[server_id].playlists_searching_message.message:
                 if not self.voice_channels[server_id].playlists_searching_message.is_updating_reactions:
                     self.voice_channels[server_id].playlists_searching_message.next_page(
