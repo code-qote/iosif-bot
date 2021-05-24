@@ -128,7 +128,8 @@ class Music(commands.Cog):
         server_id = ctx.guild.id
         if self.voice_channels[server_id].playlists_searching_message or self.voice_channels[server_id].songs_list_message:
             print(message, self.voice_channels[server_id].playlists_searching_message.message)
-            if message == self.voice_channels[server_id].playlists_searching_message.message:
+            if self.voice_channels[server_id].playlists_searching_message and message == self.voice_channels[server_id].playlists_searching_message.message:
+                print('f')
                 if not self.voice_channels[server_id].playlists_searching_message.is_updating_reactions:
                     self.voice_channels[server_id].playlists_searching_message.next_page(
                     )
