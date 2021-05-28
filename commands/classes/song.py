@@ -1,5 +1,10 @@
 import itertools
 import string
+import sys
+import path
+
+folder = path.Path(__file__).abspath()
+sys.path.append(folder.parent.parent.parent)
 
 import aiohttp
 import discord
@@ -29,7 +34,6 @@ class SpotifyEngine:
 
     def get_recommendation(self, seed_tracks):
         tracks = []
-        # print(seed_tracks)
         for track in seed_tracks:
             song = Song()
             if type(track) is dict:
@@ -37,14 +41,11 @@ class SpotifyEngine:
             else:
                 song._get_info_from_Spotify(track.name, track.artist, self.sp)
             tracks.append(song)
-        # print(tracks)
-        seed_tracks = [track.uri for track in tracks]
+        seed_tracks = [track.uri for track in tracks if track.uri]
 
         # Существует ограничение в 5 seed треков в spotify, поэтому делим их по 5
-        print('starts')
         recommendations = [self.sp.recommendations(seed_tracks=seed_tracks[i:i+5], limit=5)
                            for i in range(0, len(seed_tracks), 5)]
-        print(recommendations)
 
         recommendations_new = []
         for recs in recommendations:
@@ -52,7 +53,6 @@ class SpotifyEngine:
                 song = Song()
                 song._get_info_from_Spotify('', '', self.sp, track)
                 recommendations_new.append(song)
-        print(recommendations_new)
         return recommendations_new
 
 

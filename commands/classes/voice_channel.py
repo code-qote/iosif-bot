@@ -1,13 +1,19 @@
 import asyncio
 import itertools
 from random import choice, shuffle
+import sys
+import path
+
+folder = path.Path(__file__).abspath()
+sys.path.append(folder.parent.parent.parent)
+sys.path.append(folder.parent)
 
 from data.__all_models import Default_track_db, Playlist_db
 from data.db_session import create_session
 from discord.ext import commands
 
-from .list_message import ListMessage
-from .song import Playlist, Song, SpotifyEngine, get_tracks_from_db
+from list_message import ListMessage
+from song import Playlist, Song, SpotifyEngine, get_tracks_from_db
 
 default_message_reactions = ['⏹️', '⏸️', '⏮️', '⏭️', '👍', '👎', '❌']
 pause_message_reactions = ['⏹️', '▶️', '⏮️', '⏭️', '👍', '👎', '❌']
@@ -144,10 +150,8 @@ class VoiceChannel:
             await asyncio.sleep(1)
 
         if not tracks:
-            print('no tracks')
             tracks = get_tracks_from_db(ctx.guild.id)
             if not tracks:
-                print('no tracks again')
                 tracks = get_default_tracks_from_db()
 
         shuffle(tracks)
@@ -155,7 +159,6 @@ class VoiceChannel:
         recommendations = self.radio_engine.get_recommendation(
             tracks)
         recommendations = recommendations[:-1]
-        print(recommendations)
         for track in recommendations:
             track.from_radio = True
             track.keyword = track.name + ' ' + track.artist.name
@@ -176,7 +179,6 @@ class VoiceChannel:
             crashed = True
 
             while crashed:
-                print(crashed)
                 try:
                     if self.radio_mode:
                         message = self.current.message
@@ -190,15 +192,12 @@ class VoiceChannel:
                         await self.current.refresh(self.bot)
                     else:
                         await self.current._get_info_from_YT(self.current.keyword, self.bot, self._ctx)
-                    print('hh')
                 except Exception:
-                    print('ff')
                     if self.songs:
                         new = await self.songs.get()
                     else:
                         crashed = False
                 else:
-                    print('g')
                     crashed = False
 
             # while await self.current._get_info_from_YT(self.current.keyword, self.bot, self._ctx) is None:
