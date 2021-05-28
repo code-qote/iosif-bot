@@ -3,7 +3,6 @@ import threading
 import discord
 from discord.ext import commands
 
-from api import *
 from commands import memes, music
 from commands.fortnite import fortnite
 from consts import *
