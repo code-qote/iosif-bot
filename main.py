@@ -3,7 +3,6 @@ import threading
 import discord
 from discord.ext import commands
 
-from api import *
 from commands import memes, music
 from commands.fortnite import fortnite
 from consts import *
@@ -14,8 +13,8 @@ from errors_handler import CommandErrorHandler
 
 if __name__ == '__main__':
     bot = commands.Bot(command_prefix='!')
-    db_session.global_init('data/db.db')
-    # db_session.global_init()
+    # db_session.global_init('data/db.db')
+    db_session.global_init()
 
     music_cog = music.Music(bot)
     error_cog = CommandErrorHandler(bot)

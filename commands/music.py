@@ -1,19 +1,12 @@
-import asyncio
-from http import server
 import io
-import itertools
-from urllib import request
 
 import discord
-from data.__all_models import Track_db
 from data.db_session import create_session
 from discord.ext import commands
-from discord.ext.commands import bot
-from discord.ext.commands.core import command
-from requests.sessions import session
 from youtube import YTDLSource
 
-from ._all_classes import *
+from .classes.voice_channel import VoiceChannel
+from .classes.song import Song
 from data.db_session import create_session
 from data.__all_models import Holiday
 
@@ -127,9 +120,7 @@ class Music(commands.Cog):
     async def _next_playlist_page(self, ctx: commands.Context, message: discord.Message):
         server_id = ctx.guild.id
         if self.voice_channels[server_id].playlists_searching_message or self.voice_channels[server_id].songs_list_message:
-            print(message, self.voice_channels[server_id].playlists_searching_message.message)
             if self.voice_channels[server_id].playlists_searching_message and message == self.voice_channels[server_id].playlists_searching_message.message:
-                print('f')
                 if not self.voice_channels[server_id].playlists_searching_message.is_updating_reactions:
                     self.voice_channels[server_id].playlists_searching_message.next_page(
                     )
@@ -143,7 +134,7 @@ class Music(commands.Cog):
     async def _previous_playlist_page(self, ctx: commands.Context, message: discord.Message):
         server_id = ctx.guild.id
         if self.voice_channels[server_id].playlists_searching_message or self.voice_channels[server_id].songs_list_message:
-            if message == self.voice_channels[server_id].playlists_searching_message.message:
+            if self.voice_channels[server_id].playlists_searching_message and message == self.voice_channels[server_id].playlists_searching_message.message:
                 if not self.voice_channels[server_id].playlists_searching_message.is_updating_reactions:
                     self.voice_channels[server_id].playlists_searching_message.previous_page(
                     )
@@ -170,6 +161,7 @@ class Music(commands.Cog):
     @commands.command(name='join')
     #@check_blocking
     async def _join(self, ctx: commands.Context, ctx_channel=None):
+        print(ctx.__dir__())
         '''Join Iosif to your voice channel'''
         try:
             channel = ctx.author.voice.channel
