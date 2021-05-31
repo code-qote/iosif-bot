@@ -48,6 +48,7 @@ class Music(commands.Cog):
         server_id = ctx.guild.id
         if self.voice_channels[server_id].playlists_searching_message:
             if not self.voice_channels[server_id].playlists_searching_message.is_updating_reactions:
+                await self._stop(ctx)
                 async with ctx.typing():
                     await self.voice_channels[server_id].play_playlist(number)
 
@@ -161,7 +162,6 @@ class Music(commands.Cog):
     @commands.command(name='join')
     #@check_blocking
     async def _join(self, ctx: commands.Context, ctx_channel=None):
-        print(ctx.__dir__())
         '''Join Iosif to your voice channel'''
         try:
             channel = ctx.author.voice.channel

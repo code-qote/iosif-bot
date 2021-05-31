@@ -123,15 +123,12 @@ class VoiceChannel:
 
     async def radio(self, ctx, first=True, from_playlist=False):
         if from_playlist:
-            print('from_playlist')
             tracks = self.current.playlist.songs_uri
             self.playlist_mode = False
         else:
-            print('empty')
             tracks = []
         await self.load_intro(ctx, first)
         await self.load_recommendations(ctx, tracks)
-        print('end')
 
     async def load_intro(self, ctx, first=True):
         if (self.voice.is_playing() or self.voice.is_paused()) and first:
@@ -198,7 +195,8 @@ class VoiceChannel:
                     else:
                         crashed = False
                 else:
-                    crashed = False
+                    if self.current.source:
+                        crashed = False
 
             # while await self.current._get_info_from_YT(self.current.keyword, self.bot, self._ctx) is None:
             #     print('f')
@@ -217,28 +215,28 @@ class VoiceChannel:
             #     else:
             #         await self.current._get_info_from_YT(self.current.keyword, self.bot, self._ctx)
 
-            self.current.source.volume = 0.5
+            if self.current and self.current.source:
+                self.current.source.volume = 0.5
 
-            self.current.check_like_with_uri(self._ctx.guild.id)
-            if self.voice:
-                print('vv')
-                self.voice.play(self.current.source, after=self.play_next_song)
-            self.current.is_old = True
-            embed = self.current.get_embed()
+                self.current.check_like_with_uri(self._ctx.guild.id)
+                if self.voice:
+                    self.voice.play(self.current.source, after=self.play_next_song)
+                self.current.is_old = True
+                embed = self.current.get_embed()
 
-            if not self.radio_mode or self.current.is_intro:
-                self.current.message = await self.current.ctx.send(embed=embed)
-            else:
-                await self.current.message.edit(embed=embed)
+                if not self.radio_mode or self.current.is_intro:
+                    self.current.message = await self.current.ctx.send(embed=embed)
+                else:
+                    await self.current.message.edit(embed=embed)
 
-            if self.playlist_mode:
-                await self.current.update_message_reactions(default_playlist_message_reactions)
+                if self.playlist_mode:
+                    await self.current.update_message_reactions(default_playlist_message_reactions)
 
-            if not self.current.is_intro and not self.radio_mode and not self.playlist_mode:
-                await self.current.update_message_reactions(default_message_reactions)
+                if not self.current.is_intro and not self.radio_mode and not self.playlist_mode:
+                    await self.current.update_message_reactions(default_message_reactions)
 
-            elif self.radio_mode and not self.current.is_intro:
-                await self.current.update_message_reactions(default_radio_message_reactions)
+                elif self.radio_mode and not self.current.is_intro:
+                    await self.current.update_message_reactions(default_radio_message_reactions)
 
             if self.radio_mode and not self.songs:
                 await self.radio(self._ctx, first=False)
