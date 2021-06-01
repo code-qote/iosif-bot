@@ -22,7 +22,7 @@ if __name__ == '__main__':
     # fortnite_cog = fortnite.Fortnite(bot)
     web_server_cog = WebServer(bot)
     bot.add_cog(music_cog)
-    bot.add_cog(error_cog)
+    # bot.add_cog(error_cog)
     # bot.add_cog(memes_cog)
     # bot.add_cog(fortnite_cog)
     bot.add_cog(web_server_cog)
@@ -43,7 +43,7 @@ if __name__ == '__main__':
             elif reaction.emoji == '👍':
                 await music_cog.like_song(await bot.get_context(reaction.message))
             elif reaction.emoji == '👎':
-                await music_cog.unlike_song(await bot.get_context(reaction.message))
+                await music_cog.dislike_song(await bot.get_context(reaction.message))
             elif reaction.emoji == '❌':
                 await music_cog._leave(await bot.get_context(reaction.message))
             elif reaction.emoji == '⬅️':
