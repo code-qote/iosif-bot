@@ -1,20 +1,23 @@
 import itertools
 import string
 import sys
+
+import aiohttp
+import discord
 import path
+import spotipy
+from data.__all_models import Track_db
+from data.db_session import create_session
+from discord.ext import commands
+from youtube import YTDLSource
 
 folder = path.Path(__file__).abspath()
 sys.path.append(folder.parent.parent.parent)
 
-import aiohttp
-import discord
-import spotipy
-from data.__all_models import Track_db
-from data.db_session import create_session
-from youtube import YTDLSource
-
 
 class SpotifyEngine:
+    """Engine that provides Spotify API"""
+
     client_id = '44897430b3ff40e1b8e5cebbf31b7989'
     client_secret = '97873e4eca264471b40d1f15de216a82'
     username = 'Iosif Radio'
@@ -32,7 +35,15 @@ class SpotifyEngine:
 
         self.sp = spotipy.Spotify(auth=token)
 
-    def get_recommendation(self, seed_tracks):
+    def get_recommendation(self, seed_tracks: list) -> list:
+        """Function that returns a list of recommendations
+
+        Args:
+            seed_tracks (list): base tracks
+
+        Returns:
+            list: recommendations
+        """
         tracks = []
         for track in seed_tracks:
             song = Song()
@@ -56,7 +67,15 @@ class SpotifyEngine:
         return recommendations_new
 
 
-def get_tracks_from_db(server_id):
+def get_tracks_from_db(server_id: int) -> list:
+    """Function that returns a list of tracks from the database
+
+    Args:
+        server_id (int): guild id
+
+    Returns:
+        list: tracks from database
+    """
     server_id = str(server_id)
     session = create_session()
     tracks = session.query(Track_db).filter_by(server_id=server_id).all()
@@ -65,18 +84,32 @@ def get_tracks_from_db(server_id):
 
 
 class Playlist:
-    def __init__(self, json):
-        self.name = json['name']
-        r = SpotifyEngine()
-        self.songs = []
-        self.songs_uri = []
-        for track in json['tracks']['items']:
-            song = Song()
-            song._get_info_from_Spotify('', '', r.sp, track=track['track'])
-            song.playlist = self
-            song.from_playlist = True
-            self.songs.append(song)
-            self.songs_uri.append(track['track'])
+    """Playlist class"""
+
+    def __init__(self, json, tracks_db=None):
+        if not tracks_db:
+            self.name = json['name']
+            r = SpotifyEngine()
+            self.songs = []
+            self.songs_uri = []
+            for track in json['tracks']['items']:
+                song = Song()
+                song._get_info_from_Spotify('', '', r.sp, track=track['track'])
+                song.playlist = self
+                song.from_playlist = True
+                self.songs.append(song)
+                self.songs_uri.append(track['track'])
+        else:
+            r = SpotifyEngine()
+            self.songs = []
+            self.songs_uri = []
+            for track in tracks_db:
+                song = Song()
+                song._get_info_from_Spotify('', '', r.sp, track=track['track'])
+                song.playlist = self
+                song.from_playlist = True
+                self.songs.append(song)
+                self.songs_uri.append(song.uri)
 
     def __getitem__(self, item):
         if isinstance(item, slice):
@@ -86,6 +119,8 @@ class Playlist:
 
 
 class Artist:
+    """Artist class"""
+
     def __init__(self, info):
         self.id = info['id']
         self.uri = info['uri']
@@ -93,6 +128,8 @@ class Artist:
 
 
 class Album:
+    """Album class"""
+
     def __init__(self, info):
         self.id = info['id']
         self.uri = info['uri']
@@ -102,6 +139,8 @@ class Album:
 
 
 class Song:
+    """Song class"""
+
     def __init__(self, is_intro=False):
         self.source = None
         self.ctx = None
@@ -122,7 +161,12 @@ class Song:
         self.from_playlist = False
         self.is_updating_reactions = False
 
-    def check_like_with_uri(self, server_id):
+    def check_like_with_uri(self, server_id: int) -> None:
+        """Function that sets self.liked by using uri
+
+        Args:
+            server_id (int): guild id
+        """
         server_id = str(server_id)
         session = create_session()
         track = session.query(Track_db).filter_by(
@@ -134,7 +178,15 @@ class Song:
         session.close()
 
     # На случай, если испольнитель не считается таковым на YT
-    async def _get_info_from_Deezer(self, keyword):
+    async def _get_info_from_Deezer(self, keyword: str) -> tuple:
+        """Function that returns name and artist of the song from Deezer
+
+        Args:
+            keyword (str): Yotube keyword
+
+        Returns:
+            tuple: name, artist
+        """
         new = ''
         for i in keyword:
             if i in string.printable or i == ' ':
@@ -151,7 +203,17 @@ class Song:
                     return name, artist
         return None, None
 
-    async def _get_info_from_YT(self, keyword, bot, ctx):
+    async def _get_info_from_YT(self, keyword: str, bot: commands.Bot, ctx: commands.Context) -> bool:
+        """Function that set name and artist of the song from Yotube. Returns True if successful and None if not
+
+        Args:
+            keyword (str): Youtube keyword
+            bot (commands.Bot): bot
+            ctx (commands.Context): guild Context
+
+        Returns:
+            bool: Succcessful or not
+        """
         self.ctx = ctx
         self.source = await YTDLSource.from_url(keyword, loop=bot.loop)
         if self.source:
@@ -166,7 +228,15 @@ class Song:
         else:
             return None
 
-    def _get_info_from_Spotify(self, name, artist, sp, track=None):
+    def _get_info_from_Spotify(self, name: str , artist: Artist, sp: spotipy.Spotify, track: dict=None) -> None:
+        """Function that set name and artist of the song from Spotify
+
+        Args:
+            name (str): the name of the song
+            artist (Artist): Artist object
+            sp (spotipy.Spotify): Spotify API
+            track (dict, optional): if info is dictionary. Defaults to None.
+        """
         if track is None:
             info = sp.search(q='artist:' + artist + ' track:' +
                              name, type='track', limit=1)
@@ -186,10 +256,11 @@ class Song:
 
     # Обновление Embed
     async def refresh_message(self):
+        """Embed refresh"""
         embed = self.get_embed()
         await self.message.edit(embed=embed)
 
-    def get_embed(self):
+    def get_embed(self) -> discord.Embed:
         if self.from_radio:
             color = discord.Color.red()
         elif self.from_playlist:
@@ -220,7 +291,12 @@ class Song:
 
             return embed
 
-    def _get_info_from_source_data(self):
+    def _get_info_from_source_data(self) -> tuple:
+        """Function that set name and artist of the song from Youtube_dl source
+
+        Returns:
+            tuple: title, author, track, duration, url, thumbnail
+        """
         title = self.source.title
         author = self.source.data.get('artist', '')
         track = self.source.data.get('track', '')
@@ -271,7 +347,12 @@ class Song:
         session.close()
 
     # обновление source для повторного запуска
-    async def refresh(self, bot):
+    async def refresh(self, bot: commands.Bot) -> None:
+        """Function that updates the song source
+
+        Args:
+            bot (commands.Bot): bot
+        """
         self.source = await YTDLSource.from_url(self.source.title, loop=bot.loop)
         self.is_old = False
 

@@ -151,7 +151,8 @@ class VoiceChannel:
             if not tracks:
                 tracks = get_default_tracks_from_db()
 
-        shuffle(tracks)
+        shuffle(tracks) # для более однородных рекомендаций
+
         self.radio_engine = SpotifyEngine()
         recommendations = self.radio_engine.get_recommendation(
             tracks)

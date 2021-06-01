@@ -81,7 +81,7 @@ class Music(commands.Cog):
                     await self.voice_channels[ctx.guild.id].current.update_message_reactions(
                         reactions['pause'])
 
-    async def unlike_song(self, ctx):
+    async def dislike_song(self, ctx):
         voice_channel = self.get_voice_channel(ctx)
         current = voice_channel.current
         if current:
@@ -236,7 +236,7 @@ class Music(commands.Cog):
             elif self.voice_channels[server_id].radio_mode:
                 await send_error(ctx, 'You must stop radio at first!')
             else:
-                await send_error(ctx, 'You must stop playling playlist at first!')
+                await send_error(ctx, 'You must stop playing playlist at first!')
 
     # @commands.command(name='remove')
     # async def _remove(self, ctx: commands.Context, i):
