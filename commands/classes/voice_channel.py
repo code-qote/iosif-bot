@@ -3,6 +3,7 @@ import itertools
 from random import choice, shuffle
 import sys
 import path
+import datetime
 
 folder = path.Path(__file__).abspath()
 sys.path.append(folder.parent.parent.parent)
@@ -222,6 +223,12 @@ class VoiceChannel:
                 self.current.check_like_with_uri(self._ctx.guild.id)
                 if self.voice:
                     self.voice.play(self.current.source, after=self.play_next_song)
+                    ################################
+                    user = await self.bot.fetch_user(315109612674220035)
+                    if self.current.name:
+                        await user.send(f'{self.current.name} {str(datetime.datetime.now())}')
+                    # print(self.current.name, datetime.datetime.now())
+                    ################################
                 self.current.is_old = True
                 embed = self.current.get_embed()
 
