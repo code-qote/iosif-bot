@@ -69,6 +69,9 @@ class SongQueue(asyncio.Queue):
         del self._queue[self._queue.index(self.list_to_show[i])]
         del self.list_to_show[i]
 
+async def start(state):
+    state.audio_player = state.bot.loop.create_task(state.audio_player_task())
+    await asyncio.gather(state.audio_player)
 
 class VoiceChannel:
 
@@ -87,8 +90,6 @@ class VoiceChannel:
         self.playlists_searching_message = None
         self.songs_list_message = None
 
-        self.audio_player = self.bot.loop.create_task(self.audio_player_task())
-        asyncio.gather(self.audio_player)
 
     def __del__(self):
         self.audio_player.cancel()

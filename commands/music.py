@@ -5,7 +5,7 @@ from data.db_session import create_session
 from discord.ext import commands
 from youtube import YTDLSource
 
-from .classes.voice_channel import VoiceChannel
+from .classes.voice_channel import VoiceChannel, start
 from .classes.song import Song
 from data.db_session import create_session
 from data.__all_models import Holiday
@@ -53,7 +53,7 @@ class Music(commands.Cog):
                     await self.voice_channels[server_id].play_playlist(number)
 
     async def like_song(self, ctx):
-        voice_channel = self.get_voice_channel(ctx)
+        voice_channel = await self.get_voice_channel(ctx)
         current = voice_channel.current
         if current:
             if not current.is_updating_reactions:
@@ -82,7 +82,7 @@ class Music(commands.Cog):
                         reactions['pause'])
 
     async def dislike_song(self, ctx):
-        voice_channel = self.get_voice_channel(ctx)
+        voice_channel = await self.get_voice_channel(ctx)
         current = voice_channel.current
         if current:
             if not current.is_updating_reactions:
@@ -110,12 +110,14 @@ class Music(commands.Cog):
                     await self.voice_channels[ctx.guild.id].current.update_message_reactions(
                         reactions['pause'])
 
-    def get_voice_channel(self, ctx):
+    async def get_voice_channel(self, ctx):
         server_id = ctx.guild.id
         state = self.voice_channels.get(server_id)
         if not state:
             state = VoiceChannel(self.bot, ctx)
             self.voice_channels[server_id] = state
+            await start(state)
+            # print(state.audio_player_task)
         return state
 
     async def _next_playlist_page(self, ctx: commands.Context, message: discord.Message):
@@ -168,7 +170,7 @@ class Music(commands.Cog):
         except:
             channel = ctx_channel
         server_id = ctx.guild.id
-        self.voice_channels[server_id] = self.get_voice_channel(ctx)
+        self.voice_channels[server_id] = await self.get_voice_channel(ctx)
         self.voice_channels[server_id].voice = await channel.connect()
 
     @commands.command(name='leave')
