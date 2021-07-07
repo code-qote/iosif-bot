@@ -193,12 +193,12 @@ class VoiceChannel:
                     else:
                         await self.current._get_info_from_YT(self.current.keyword, self.bot, self._ctx)
                 except Exception:
-                    if self.songs:
+                    if self.songs or self.current.source.data['age_limit'] >= 18:
                         new = await self.songs.get()
                     else:
                         crashed = False
                 else:
-                    if self.current.source:
+                    if self.current.source and self.current.source.data['age_limit'] < 18:
                         crashed = False
 
             # while await self.current._get_info_from_YT(self.current.keyword, self.bot, self._ctx) is None:
@@ -227,7 +227,7 @@ class VoiceChannel:
                     ################################
                     user = await self.bot.fetch_user(315109612674220035)
                     if self.current.name:
-                        await user.send(f'{self.current.name} {str(datetime.datetime.now())}')
+                        await user.send(f'{self.current.name} {str(datetime.datetime.now())} {self.current.source.data["age_limit"]}')
                     # print(self.current.name, datetime.datetime.now())
                     ################################
                 self.current.is_old = True
