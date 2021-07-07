@@ -116,7 +116,6 @@ class Music(commands.Cog):
         if not state:
             state = VoiceChannel(self.bot, ctx)
             self.voice_channels[server_id] = state
-            await start(state)
             # print(state.audio_player_task)
         return state
 
@@ -172,6 +171,7 @@ class Music(commands.Cog):
         server_id = ctx.guild.id
         self.voice_channels[server_id] = await self.get_voice_channel(ctx)
         self.voice_channels[server_id].voice = await channel.connect()
+        await start(self.voice_channels[server_id])
 
     @commands.command(name='leave')
     #@check_blocking
