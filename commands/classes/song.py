@@ -204,7 +204,7 @@ class Song:
         return None, None
 
     async def _get_info_from_YT(self, keyword: str, bot: commands.Bot, ctx: commands.Context) -> bool:
-        """Function that set name and artist of the song from Yotube. Returns True if successful and None if not
+        """Function that sets name and artist of the song from Yotube. Returns True if successful and None if not
 
         Args:
             keyword (str): Youtube keyword
@@ -225,11 +225,10 @@ class Song:
                 r = SpotifyEngine()
                 self._get_info_from_Spotify(track, author, r.sp)
             return True
-        else:
-            return None
+        return None
 
     def _get_info_from_Spotify(self, name: str , artist: Artist, sp: spotipy.Spotify, track: dict=None) -> None:
-        """Function that set name and artist of the song from Spotify
+        """Function that sets name and artist of the song from Spotify
 
         Args:
             name (str): the name of the song
@@ -292,7 +291,7 @@ class Song:
             return embed
 
     def _get_info_from_source_data(self) -> tuple:
-        """Function that set name and artist of the song from Youtube_dl source
+        """Function that sets name and artist of the song from Youtube_dl source
 
         Returns:
             tuple: title, author, track, duration, url, thumbnail
