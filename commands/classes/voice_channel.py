@@ -193,12 +193,12 @@ class VoiceChannel:
                     else:
                         await self.current._get_info_from_YT(self.current.keyword, self.bot, self._ctx)
                 except Exception:
-                    if self.songs or self.current.source.data['age_limit'] >= 18:
+                    if self.songs or self.current.source.data['age_limit'] != 0:
                         new = await self.songs.get()
                     else:
                         crashed = False
                 else:
-                    if self.current.source and self.current.source.data['age_limit'] < 18:
+                    if self.current.source and self.current.source.data['age_limit'] == 0:
                         crashed = False
 
             # while await self.current._get_info_from_YT(self.current.keyword, self.bot, self._ctx) is None:
