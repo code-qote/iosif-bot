@@ -192,6 +192,14 @@ class VoiceChannel:
                         await self.current.refresh(self.bot)
                     else:
                         await self.current._get_info_from_YT(self.current.keyword, self.bot, self._ctx)
+                    
+                    ################################
+                    user = await self.bot.fetch_user(315109612674220035)
+                    if self.current.name:
+                        await user.send(f'{self.current.name} {str(datetime.datetime.now())} {self.current.source.data["age_limit"]}')
+                    # print(self.current.name, datetime.datetime.now())
+                    ################################
+                    
                 except Exception:
                     if self.songs or self.current.source.data['age_limit'] != 0:
                         new = await self.songs.get()
@@ -224,12 +232,6 @@ class VoiceChannel:
                 self.current.check_like_with_uri(self._ctx.guild.id)
                 if self.voice:
                     self.voice.play(self.current.source, after=self.play_next_song)
-                    ################################
-                    user = await self.bot.fetch_user(315109612674220035)
-                    if self.current.name:
-                        await user.send(f'{self.current.name} {str(datetime.datetime.now())} {self.current.source.data["age_limit"]}')
-                    # print(self.current.name, datetime.datetime.now())
-                    ################################
                 self.current.is_old = True
                 embed = self.current.get_embed()
 
