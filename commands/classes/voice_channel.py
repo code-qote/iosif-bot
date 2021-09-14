@@ -200,7 +200,7 @@ class VoiceChannel:
                     # print(self.current.name, datetime.datetime.now())
                     ################################
 
-                    if self.songs or self.current.source.data["age_limit"] != 0:
+                    if self.current.source.data["age_limit"] != 0:
                         new = await self.current.get()
                     else:
                         crashed = False
