@@ -314,12 +314,18 @@ class Song:
         return False
 
     def convert_duration(self, duration):
-        h = duration // 3600
+        h = str(duration // 3600)
+        if len(h) == 1:
+            h = '0' + h
         duration %= 3600
-        m = duration // 60
+        m = str(duration // 60)
+        if len(m) == 1:
+            m = '0' + m
         duration %= 60
-        s = duration
-        return f'{int(h)}:{int(m)}:{int(s)}'
+        s = str(duration)
+        if len(s) == 1:
+            s = '0' + s
+        return f'{h}:{m}:{s}'
 
     def add_to_db(self, server_id):
         server_id = str(server_id)
