@@ -4,7 +4,7 @@ import discord
 from discord.ext import commands
 
 from commands import memes, music
-from commands.fortnite import fortnite
+# from commands.fortnite import fortnite
 from consts import *
 from data import db_session
 from web_server import WebServer
