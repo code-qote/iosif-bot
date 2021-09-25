@@ -8,8 +8,8 @@ import pymorphy2
 import pytz
 from requests import get
 
-from commands.fortnite.fort_consts import *
-from commands.fortnite.store_update import get_store
+# from commands.fortnite.fort_consts import *
+# from commands.fortnite.store_update import get_store
 from data.__all_models import Holiday, Playlist_db
 from data.db_session import create_session
 
@@ -21,17 +21,6 @@ def check_update_task(bot):
         time = datetime.datetime.now()
         timezone = pytz.timezone('Etc/Greenwich')
         time = time.astimezone(timezone)
-        headers = {'TRN-Api-Key': API_KEY}
-        try:
-            response = eval(
-                get('https://api.fortnitetracker.com/v1/store', headers=headers).content)
-        except Exception:
-            pass
-        if len(response):
-            if response != last:
-                last = response
-                # get_store(response)
-                update_holiday()
         if bot:
             update_presence = bot.loop.create_task(update_presence_task(bot))
             asyncio.gather(update_presence)

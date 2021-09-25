@@ -1,4 +1,6 @@
 import io
+import asyncio
+import random
 
 import discord
 from data.db_session import create_session
@@ -35,6 +37,7 @@ def check_blocking(func):
         if func.__name__ not in args[0].blocked_commands:
             return await func(*args, **kwargs)
     return wrapper
+
 
 class Music(commands.Cog):
 
@@ -152,11 +155,19 @@ class Music(commands.Cog):
     async def _playlist(self, ctx: commands.Context, *, keyword):
         '''!playlist [name of playlist]. Searching playlist'''
         server_id = ctx.guild.id
+        if not self.voice_channels.get(server_id, None):
+            await send_error(ctx, 'Please use command !join to summon me firstly :)')
+            return
+        server_id = ctx.guild.id
         await self.voice_channels[server_id].search_playlists(keyword)
 
     @commands.command(name='all_playlists')
     #@check_blocking
     async def _all_playlists(self, ctx: commands.Context):
+        server_id = ctx.guild.id
+        if not self.voice_channels.get(server_id, None):
+            await send_error(ctx, 'Please use command !join to summon me firstly :)')
+            return
         server_id = ctx.guild.id
         await self.voice_channels[server_id].search_playlists()
 
@@ -169,6 +180,10 @@ class Music(commands.Cog):
         except:
             channel = ctx_channel
         server_id = ctx.guild.id
+
+        if random.randint(1, 100) < 30:
+            await send_error(ctx, "Also try !radio")
+
         self.voice_channels[server_id] = await self.get_voice_channel(ctx)
         self.voice_channels[server_id].voice = await channel.connect()
         await start(self.voice_channels[server_id])
@@ -181,7 +196,9 @@ class Music(commands.Cog):
         server_id = ctx.guild.id
         if self.voice_channels[server_id].current:
             if not self.voice_channels[server_id].current.is_updating_reactions:
-                await self.voice_channels[ctx.guild.id].leave()
+                await self.voice_channels[server_id].leave()
+        else:
+            await self.voice_channels[server_id].leave()
 
     @commands.command(name='skip')
     #@check_blocking
@@ -222,11 +239,15 @@ class Music(commands.Cog):
             pass
 
     @commands.command(name='play')
+    # @check_joined
     #@check_blocking
     async def _play(self, ctx: commands.Context, *, keyword):
         '''Hey, Iosif. Light up the dance floor!'''
+        server_id = ctx.guild.id
+        if not self.voice_channels.get(server_id, None):
+            await send_error(ctx, 'Please use command !join to summon me firstly :)')
+            return
         async with ctx.typing():
-            server_id = ctx.guild.id
             if not self.voice_channels[server_id].radio_mode and not self.voice_channels[server_id].playlist_mode:
                 source = await YTDLSource.from_url(keyword, loop=self.bot.loop)
                 song = Song()
@@ -235,6 +256,10 @@ class Music(commands.Cog):
                 await self.voice_channels[server_id].songs.put(song)
                 self.voice_channels[server_id].songs.list_to_show.append(song)
                 await send_success(ctx, 'Added to queue {}'.format(source.title))
+
+                if random.randint(1, 100) < 30:
+                    await send_error(ctx, 'Also try !radio')
+            
             elif self.voice_channels[server_id].radio_mode:
                 await send_error(ctx, 'You must stop radio at first!')
             else:
@@ -248,6 +273,10 @@ class Music(commands.Cog):
     #@check_blocking
     async def _radio(self, ctx: commands.Context):
         '''Turn on the radio'''
+        server_id = ctx.guild.id
+        if not self.voice_channels.get(server_id, None):
+            await send_error(ctx, 'Please use command !join to summon me firstly :)')
+            return
         await self.voice_channels[ctx.guild.id].radio(ctx)
 
     async def _radio_from_playlist(self, ctx: commands.Context):
@@ -304,6 +333,10 @@ class Music(commands.Cog):
     #@check_blocking
     async def _list(self, ctx: commands.Context):
         '''Show list of the next songs'''
+        server_id = ctx.guild.id
+        if not self.voice_channels.get(server_id, None):
+            await send_error(ctx, 'Please use command !join to summon me firstly :)')
+            return
         async with ctx.typing():
             res = []
             for v in self.voice_channels[ctx.guild.id].songs.list_to_show:
@@ -316,23 +349,23 @@ class Music(commands.Cog):
             else:
                 await send_info(ctx, 'List', 'The queue is empty.')
 
-    @commands.command(name='update')
-    #@check_blocking
-    async def _update(self, ctx: commands.Context):
-        '''Get information about last update'''
-        async with ctx.typing():
-            with io.open('patch-note.txt', 'r', encoding='utf-8') as file:
-                text = file.read()
-                await send_info(ctx, 'Patch Note', text)
+    # @commands.command(name='update')
+    # #@check_blocking
+    # async def _update(self, ctx: commands.Context):
+    #     '''Get information about last update'''
+    #     async with ctx.typing():
+    #         with io.open('patch-note.txt', 'r', encoding='utf-8') as file:
+    #             text = file.read()
+    #             await send_info(ctx, 'Patch Note', text)
 
     # не относится к music
-    @commands.command(name='holiday')
-    #@check_blocking
-    async def _holiday(self, ctx: commands.Context):
-        '''What is holiday today? (Not real)'''
-        async with ctx.typing():
-            session = create_session()
-            holiday = session.query(Holiday).limit(1).first()
-            if holiday:
-                await send_success(ctx, holiday.name)
-            session.close()
+    # @commands.command(name='holiday')
+    # #@check_blocking
+    # async def _holiday(self, ctx: commands.Context):
+    #     '''What is holiday today? (Not real)'''
+    #     async with ctx.typing():
+    #         session = create_session()
+    #         holiday = session.query(Holiday).limit(1).first()
+    #         if holiday:
+    #             await send_success(ctx, holiday.name)
+    #         session.close()
