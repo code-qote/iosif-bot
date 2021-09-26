@@ -181,8 +181,8 @@ class Music(commands.Cog):
             channel = ctx_channel
         server_id = ctx.guild.id
 
-        if random.randint(1, 100) < 30:
-            await send_error(ctx, "Also try !radio")
+        if random.randint(1, 100) < 15:
+            await send_error(ctx, "Try !radio")
 
         self.voice_channels[server_id] = await self.get_voice_channel(ctx)
         self.voice_channels[server_id].voice = await channel.connect()
