@@ -1,5 +1,5 @@
-TOKEN = 'Njc4NjM2NDg2NDQ2NTQ2OTc0.Xklreg.NpEp6lij-qTsNIFsr1d2VQj__-Y'
-TOKEN_TEST = 'Nzc4NDYyODM0Mzg0MTc1MTA0.X7SWAg.mB4hoCak5IHWtZT5llYAApYqhRc'
+TOKEN = 'token'
+TOKEN_TEST = 'token'
 API_URL_SERVER = 'http://127.0.0.1:5000/api/server?'
 API_URL_SONG = 'http://127.0.0.1:5000/api/song?'
 
@@ -23,7 +23,7 @@ FFMPEG_OPTIONS = {
     'options': '-vn'
 }
 
-MESSAGE_API_TOKEN = 'QHKqKGksdXMNwH9NgKkLy2NcK9cHes'
+MESSAGE_API_TOKEN = 'token'
 
 languages = {'🇷🇺': 'ru', '🇩🇪': 'de', '🇪🇸': 'es', '🇬🇧': 'en'}
 digits = {'1️⃣': 0, '2️⃣': 1, '3️⃣': 2, '4️⃣': 3, '5️⃣': 4,
